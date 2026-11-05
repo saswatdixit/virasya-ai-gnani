@@ -34,6 +34,7 @@ import {
   uid,
   getClock,
   punctItems,
+  combineOptionalAndTranscribedText,
 } from "../utils";
 import {
   deleteStoryDraftFromBackend,
@@ -279,10 +280,35 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateForm = useCallback((field: keyof StoryForm, value: string) => {
-    setState((s) => ({
-      ...s,
-      form: { ...s.form, [field]: value },
-    }));
+    setState((s) => {
+      let nextEd = s.ed;
+      if (field === "story") {
+        const transcript = s.tx.gnani?.text || s.tx.vaani?.text || "";
+        const isEdClean = !s.ed.text || s.ed.text === s.ed.baseText;
+        if (isEdClean) {
+          if (transcript && (s.ed.loadedFrom === "gnani" || s.ed.loadedFrom === "vaani")) {
+            const combined = combineOptionalAndTranscribedText(value, transcript);
+            nextEd = {
+              ...s.ed,
+              text: combined,
+              baseText: combined,
+            };
+          } else if (s.ed.loadedFrom === "written" || !s.ed.loadedFrom) {
+            nextEd = {
+              ...s.ed,
+              text: value,
+              baseText: value,
+            };
+          }
+        }
+      }
+
+      return {
+        ...s,
+        form: { ...s.form, [field]: value },
+        ed: nextEd,
+      };
+    });
     if (field === "language" && value) {
       const match = LANGUAGE_OPTIONS.find(
         (opt) => opt.name.toLowerCase() === value.toLowerCase()
@@ -452,10 +478,10 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
             conformer: { status: "idle" as const, p: 0, text: "", error: null },
           };
 
-          // If working editor has no text yet, initialize with Gnani transcript
+          // If working editor has no text yet, or was populated from an earlier transcription run, initialize with combined text
           let nextEd = s.ed;
           if (!s.ed.text || s.ed.loadedFrom === "gnani" || s.ed.loadedFrom === "vaani") {
-            const initialText = transcriptText || s.form.story || "";
+            const initialText = combineOptionalAndTranscribedText(s.form.story, transcriptText);
             const initialSource = transcriptText ? ("gnani" as const) : s.form.story ? ("written" as const) : null;
             if (initialText) {
               nextEd = {
@@ -631,8 +657,8 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
       },
       ed: {
         ...s.ed,
-        text: DEMO_TRANSCRIPTS.vaani,
-        baseText: DEMO_TRANSCRIPTS.vaani,
+        text: combineOptionalAndTranscribedText(s.form.story, DEMO_TRANSCRIPTS.vaani),
+        baseText: combineOptionalAndTranscribedText(s.form.story, DEMO_TRANSCRIPTS.vaani),
         loadedFrom: "gnani",
         notice: "Loaded sample Odia transcript (demo mode).",
       },
@@ -700,11 +726,17 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
     (source: "gnani" | "vaani" | "conformer" | "enhanced" | "written") => {
       setState((s) => {
         let textToLoad = "";
-        if (source === "gnani") textToLoad = s.tx.gnani?.text || s.tx.vaani.text || "";
-        else if (source === "vaani") textToLoad = s.tx.vaani.text || s.tx.gnani?.text || "";
-        else if (source === "conformer") textToLoad = s.tx.conformer.text || "";
-        else if (source === "written") textToLoad = s.form.story || "";
-        else if (source === "enhanced") textToLoad = s.tx.gnani?.text || s.tx.vaani.text || s.form.story || "";
+        if (source === "gnani") {
+          textToLoad = combineOptionalAndTranscribedText(s.form.story, s.tx.gnani?.text || s.tx.vaani.text);
+        } else if (source === "vaani") {
+          textToLoad = combineOptionalAndTranscribedText(s.form.story, s.tx.vaani.text || s.tx.gnani?.text);
+        } else if (source === "conformer") {
+          textToLoad = combineOptionalAndTranscribedText(s.form.story, s.tx.conformer.text);
+        } else if (source === "written") {
+          textToLoad = (s.form.story || "").trim();
+        } else if (source === "enhanced") {
+          textToLoad = combineOptionalAndTranscribedText(s.form.story, s.tx.gnani?.text || s.tx.vaani.text);
+        }
 
         const isDirty = s.ed.text && s.ed.text !== s.ed.baseText;
         const newDrafts = isDirty
@@ -820,7 +852,8 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
 
   const acceptAllPunct = useCallback(() => {
     setState((s) => {
-      const items = punctItems(s.ed.text || s.form.story || "");
+      const fallback = combineOptionalAndTranscribedText(s.form.story, s.tx.gnani?.text || s.tx.vaani?.text);
+      const items = punctItems(s.ed.text || fallback);
       const dec: Record<string, "accepted"> = {};
       items.forEach((it) => (dec[it.id] = "accepted"));
       return {
@@ -832,7 +865,8 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
 
   const rejectAllPunct = useCallback(() => {
     setState((s) => {
-      const items = punctItems(s.ed.text || s.form.story || "");
+      const fallback = combineOptionalAndTranscribedText(s.form.story, s.tx.gnani?.text || s.tx.vaani?.text);
+      const items = punctItems(s.ed.text || fallback);
       const dec: Record<string, "rejected"> = {};
       items.forEach((it) => (dec[it.id] = "rejected"));
       return {
@@ -905,7 +939,11 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
 
   const preserveStoryAction = useCallback(async () => {
     const storyId = state.storyId || `story_${Date.now()}`;
-    const workingText = state.punct.manual || state.ed.text || state.form.story || "";
+    const fallbackNarrative = combineOptionalAndTranscribedText(
+      state.form.story,
+      state.tx.gnani?.text || state.tx.vaani?.text
+    );
+    const workingText = state.punct.manual || state.ed.text || fallbackNarrative;
     const derivedCarrier =
       (state.form.carrier || "").trim() ||
       profile?.display_name ||
@@ -924,7 +962,7 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
       period: state.form.period,
       relationship: state.form.relationship,
       email: state.form.email,
-      story: state.form.story,
+      story: workingText,
       writtenText: state.form.story,
       audio: state.audio
         ? {

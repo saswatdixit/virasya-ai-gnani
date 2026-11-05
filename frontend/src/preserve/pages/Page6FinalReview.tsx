@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { usePreserve } from "../context/PreserveContext";
-import { wordCount } from "../utils";
+import { wordCount, combineOptionalAndTranscribedText } from "../utils";
 import AudioPlayer from "../components/AudioPlayer";
 import { isBackendConfigured } from "../api";
 
@@ -58,8 +58,12 @@ export default function Page6FinalReview() {
     }
   }, [showAudioPrivacyDialog]);
 
-  // Carry forward punctuated manual text, or fall back to transcript draft or form story
-  const finalText = punct.manual !== null ? punct.manual : (ed.text || form.story || "");
+  // Carry forward punctuated manual text, or fall back to transcript draft or form story + transcript
+  const fallbackNarrative = combineOptionalAndTranscribedText(
+    form.story,
+    state.tx.gnani?.text || state.tx.vaani?.text
+  );
+  const finalText = punct.manual !== null ? punct.manual : (ed.text || fallbackNarrative);
   const finalWordCount = wordCount(finalText);
 
   const isPublicAudioPlaybackEnabled = Boolean(

@@ -9,6 +9,7 @@ import type {
   PunctuationMarkItem,
   PunctuationCategory,
 } from "../punctuationProfiles";
+import { combineOptionalAndTranscribedText } from "../utils";
 
 export default function Page5Punctuation() {
   const {
@@ -38,8 +39,12 @@ export default function Page5Punctuation() {
 
   const profile = useMemo(() => getPunctuationProfile(activeLanguage), [activeLanguage]);
 
-  // Initial text: carried forward from manual punctuation, working draft, or step 1 story
-  const baseWorkingText = state.ed.text || state.form.story || "";
+  // Initial text: carried forward from manual punctuation, working draft, or step 1 story + transcript
+  const fallbackWorking = combineOptionalAndTranscribedText(
+    state.form.story,
+    state.tx.gnani?.text || state.tx.vaani?.text
+  );
+  const baseWorkingText = state.ed.text || fallbackWorking;
   const currentText = state.punct.manual !== null ? state.punct.manual : baseWorkingText;
 
   const [text, setText] = useState<string>(() => currentText);

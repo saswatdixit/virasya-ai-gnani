@@ -129,8 +129,9 @@ export function storyPayloadToDraftInsert(
 
   const roots = payload.roots || raw.place || "";
   const place = raw.place || payload.roots || "";
-  const written_text = payload.writtenText || raw.written_text || raw.story || "";
-  const story = raw.story || payload.writtenText || raw.written_text || "";
+  const written_text = payload.writtenText || raw.written_text || "";
+  const final_text = raw.final_text || raw.finalText || "";
+  const story = raw.story || final_text || payload.workingDraft || raw.working_draft || written_text || "";
 
   return {
     id: storyId,

@@ -17,6 +17,36 @@ export const formatSize = (bytes: number | null): string => {
 export const wordCount = (t: string | undefined): number =>
   t && t.trim() ? t.trim().split(/\s+/).length : 0;
 
+/**
+ * Combines optional user-provided text (from Step 1) and speech-transcribed text into a cohesive story narrative.
+ *
+ * Rules:
+ * 1. Order: Optional text first, followed by transcribed text.
+ * 2. If both texts are present, separates them with a double newline ("\n\n"), preserving paragraph structure.
+ * 3. Surrounding leading and trailing whitespace on the optional text is cleanly trimmed.
+ * 4. If optional text is blank or whitespace-only, returns ONLY the transcribed text (no empty lines, placeholders, or separators).
+ * 5. If transcribed text is blank or missing, returns ONLY the trimmed optional text.
+ * 6. If both are blank, returns an empty string.
+ */
+export function combineOptionalAndTranscribedText(
+  optionalText?: string | null,
+  transcribedText?: string | null
+): string {
+  const opt = (optionalText || "").trim();
+  const tx = (transcribedText || "").trim();
+
+  if (opt && tx) {
+    return `${opt}\n\n${tx}`;
+  }
+  if (opt) {
+    return opt;
+  }
+  if (tx) {
+    return tx;
+  }
+  return "";
+}
+
 export const getClock = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 

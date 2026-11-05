@@ -3,6 +3,7 @@ import { usePreserve } from "../context/PreserveContext";
 import type { VocabularyEntry } from "../types";
 import { STORY_LANGUAGES } from "../types";
 import { saveVocabularyToBackend } from "../api";
+import { combineOptionalAndTranscribedText } from "../utils";
 
 export default function Page4Vocabulary() {
   const {
@@ -13,7 +14,11 @@ export default function Page4Vocabulary() {
     removeVocabEntry,
   } = usePreserve();
 
-  const workingText = state.ed.text || state.form.story || "";
+  const fallbackWorking = combineOptionalAndTranscribedText(
+    state.form.story,
+    state.tx.gnani?.text || state.tx.vaani?.text
+  );
+  const workingText = state.ed.text || fallbackWorking;
   const vocab = state.vocab;
 
   // Active form state
