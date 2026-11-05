@@ -802,7 +802,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             "written_text": story_dict.get("writtenText") or story_dict.get("written_text", ""),
             "working_draft": story_dict.get("workingDraft") or story_dict.get("working_draft", ""),
             "final_text": story_dict.get("final_text") or story_dict.get("story", ""),
-            "story": story_dict.get("story", ""),
+            "story": story_dict.get("story") or story_dict.get("final_text", ""),
             "audio": story_dict.get("audio"),
             "raw_transcripts": story_dict.get("raw_transcripts") or {},
             "vocabulary": story_dict.get("vocabulary") or [],
@@ -865,6 +865,13 @@ class StudioHandler(BaseHTTPRequestHandler):
 
         if payload.get("final_text"):
             existing["final_text"] = payload["final_text"]
+            existing["story"] = payload["final_text"]
+        elif payload.get("story"):
+            existing["final_text"] = payload["story"]
+            existing["story"] = payload["story"]
+
+        if payload.get("writtenText") or payload.get("written_text"):
+            existing["written_text"] = payload.get("writtenText") or payload.get("written_text")
         if payload.get("vocabulary"):
             existing["vocabulary"] = payload["vocabulary"]
             if isinstance(payload["vocabulary"], list):

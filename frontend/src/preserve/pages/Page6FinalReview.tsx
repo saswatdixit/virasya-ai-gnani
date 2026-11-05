@@ -59,11 +59,15 @@ export default function Page6FinalReview() {
   }, [showAudioPrivacyDialog]);
 
   // Carry forward punctuated manual text, or fall back to transcript draft or form story + transcript
-  const fallbackNarrative = combineOptionalAndTranscribedText(
-    form.story,
-    state.tx.gnani?.text || state.tx.vaani?.text
-  );
-  const finalText = punct.manual !== null ? punct.manual : (ed.text || fallbackNarrative);
+  const opt = (form.story || "").trim();
+  const txText = (state.tx.gnani?.text || state.tx.vaani?.text || "").trim();
+  const speechPart = (punct.manual !== null ? punct.manual : ed.text || txText || "").trim();
+  let finalText = "";
+  if (opt && speechPart) {
+    finalText = speechPart.startsWith(opt) ? speechPart : combineOptionalAndTranscribedText(opt, speechPart);
+  } else {
+    finalText = opt || speechPart || "";
+  }
   const finalWordCount = wordCount(finalText);
 
   const isPublicAudioPlaybackEnabled = Boolean(

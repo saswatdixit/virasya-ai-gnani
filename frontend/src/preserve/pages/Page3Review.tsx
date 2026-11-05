@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePreserve } from "../context/PreserveContext";
-import { wordCount, combineOptionalAndTranscribedText } from "../utils";
+import { wordCount } from "../utils";
 import AudioPlayer from "../components/AudioPlayer";
 
 export default function Page3Review() {
@@ -29,11 +29,9 @@ export default function Page3Review() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const fallbackWorking = combineOptionalAndTranscribedText(
-    form.story,
-    gnaniDone && gnaniText ? gnaniText : null
-  );
-  const currentWorkingText = ed.text || fallbackWorking;
+  const opt = (form.story || "").trim();
+  const txText = (gnaniDone && gnaniText ? gnaniText : "").trim();
+  const currentWorkingText = ed.text !== "" ? ed.text : (txText || opt || "");
 
   return (
     <div className="p-compact-step">

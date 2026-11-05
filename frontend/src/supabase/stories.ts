@@ -91,9 +91,9 @@ export async function preserveStoryToSupabase(
   const carrier = story.carrier || "";
   const workingText =
     story.final_text ||
+    (story as any).story ||
     story.workingDraft ||
     story.writtenText ||
-    (story as any).story ||
     "";
 
   // Compute sovereign provenance ID

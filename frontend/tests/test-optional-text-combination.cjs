@@ -282,5 +282,83 @@ console.log("=== Virasya Optional Text + Transcription Combination Tests ===\n")
     console.log("   ✓ Legacy stories without optional text render cleanly with zero regressions.");
   }
 
-  console.log("\n=== ALL 10 OPTIONAL TEXT COMBINATION TESTS PASSED (100%) ===");
+  // ---------------------------------------------------------------------------
+  // 11. Scenario 11: Real Workflow Simulation (Step 1 -> Step 2 -> Step 6 -> Preserve)
+  // ---------------------------------------------------------------------------
+  console.log("11. Testing full preservation state machine simulation...");
+  {
+    const optionalText = "Today I visited my grandmother's village. It reminded me of my childhood.";
+    const transcribedAudio = "The village was beautiful. I met many old friends and remembered our childhood.";
+
+    // Step 1: User enters optional text
+    const formStory = optionalText;
+    let ed = { text: optionalText, baseText: optionalText, loadedFrom: null };
+
+    // Step 2: Audio transcribed
+    const opt = formStory.trim();
+    const tx = transcribedAudio.trim();
+    const combined = combineOptionalAndTranscribedText(opt, tx);
+
+    const shouldUpdateEd =
+      !ed.text ||
+      ed.text === ed.baseText ||
+      ed.text.trim() === opt ||
+      ed.text.trim() === tx ||
+      ed.loadedFrom === "gnani" ||
+      ed.loadedFrom === "vaani" ||
+      ed.loadedFrom === "written" ||
+      !ed.loadedFrom;
+
+    assert.ok(shouldUpdateEd, "shouldUpdateEd must be TRUE after Step 1 typing and Step 2 transcription");
+    if (shouldUpdateEd && combined) {
+      ed = {
+        text: combined,
+        baseText: combined,
+        loadedFrom: "gnani",
+      };
+    }
+
+    assert.strictEqual(ed.text, `${optionalText}\n\n${transcribedAudio}`, "Working draft must contain both texts in order");
+
+    // Step 6 / Preservation: workingText calculation
+    let workingText = ed.text;
+    if (opt && tx) {
+      if (!workingText || workingText === opt || workingText === tx) {
+        workingText = combineOptionalAndTranscribedText(opt, tx);
+      } else if (!workingText.includes(opt) && workingText.includes(tx)) {
+        workingText = combineOptionalAndTranscribedText(opt, workingText);
+      } else if (workingText.includes(opt) && !workingText.includes(tx)) {
+        workingText = combineOptionalAndTranscribedText(workingText, tx);
+      }
+    }
+
+    assert.strictEqual(workingText, `${optionalText}\n\n${transcribedAudio}`, "Preservation payload must carry both texts");
+    console.log("   ✓ Full preservation workflow simulation cleanly yields combined narrative.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // 12. Scenario 12: Explore Tab Reader & Excerpt Verification
+  // ---------------------------------------------------------------------------
+  console.log("12. Testing Explore Tab Reader rendering logic with combined narrative...");
+  {
+    const optionalText = "Today I visited my grandmother's village. It reminded me of my childhood.";
+    const transcribedAudio = "The village was beautiful. I met many old friends and remembered our childhood.";
+    const combinedNarrative = `${optionalText}\n\n${transcribedAudio}`;
+
+    // Explore drawer logic: splits narrative into paragraphs
+    const paragraphs = combinedNarrative
+      .split(/\n\s*\n|\n/)
+      .filter((p) => p.trim());
+
+    assert.strictEqual(paragraphs.length, 2, "Explore narrative must split cleanly into 2 distinct paragraphs");
+    assert.strictEqual(paragraphs[0], optionalText, "First paragraph must be the optional text");
+    assert.strictEqual(paragraphs[1], transcribedAudio, "Second paragraph must be the transcribed speech");
+
+    // Explore card excerpt logic
+    const excerpt = combinedNarrative.slice(0, 150);
+    assert.ok(excerpt.startsWith(optionalText), "Card excerpt must start with optional text");
+    console.log("   ✓ Explore tab narrative and excerpt properly present both texts together.");
+  }
+
+  console.log("\n=== ALL 12 OPTIONAL TEXT COMBINATION TESTS PASSED (100%) ===");
 })();

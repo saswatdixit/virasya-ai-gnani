@@ -159,14 +159,38 @@ Deno.serve(async (req: Request) => {
     }
 
     // B. Validate Narrative Text (Authoritative Odia Narrative)
-    const finalText = (
+    const clientFinalText = (
       typeof body.final_text === "string" ? body.final_text :
+      typeof body.story === "string" ? body.story :
       typeof body.working_draft === "string" ? body.working_draft :
       typeof body.workingDraft === "string" ? body.workingDraft :
+      ""
+    ).trim();
+
+    const writtenText = (
       typeof body.written_text === "string" ? body.written_text :
       typeof body.writtenText === "string" ? body.writtenText :
-      typeof body.story === "string" ? body.story : ""
+      ""
     ).trim();
+
+    const transcriptText = (
+      typeof body.raw_transcripts?.vaani?.text === "string" ? body.raw_transcripts.vaani.text :
+      typeof body.raw_transcripts?.gnani?.text === "string" ? body.raw_transcripts.gnani.text :
+      ""
+    ).trim();
+
+    let finalText = clientFinalText;
+    if (writtenText && transcriptText) {
+      if (!finalText || finalText === writtenText || finalText === transcriptText) {
+        finalText = `${writtenText}\n\n${transcriptText}`;
+      } else if (!finalText.includes(writtenText) && finalText.includes(transcriptText)) {
+        finalText = `${writtenText}\n\n${finalText}`;
+      } else if (finalText.includes(writtenText) && !finalText.includes(transcriptText)) {
+        finalText = `${finalText}\n\n${transcriptText}`;
+      }
+    } else if (!finalText) {
+      finalText = writtenText || transcriptText;
+    }
 
     if (!finalText) {
       return new Response(
@@ -451,10 +475,10 @@ Deno.serve(async (req: Request) => {
       p_language: language,
       p_period: String(body.period || "").trim(),
       p_email: user.email || String(body.email || "").trim(),
-      p_written_text: String(body.written_text || body.writtenText || body.story || "").trim(),
-      p_working_draft: String(body.working_draft || body.workingDraft || "").trim(),
+      p_written_text: writtenText,
+      p_working_draft: String(body.working_draft || body.workingDraft || finalText).trim(),
       p_final_text: finalText,
-      p_story: String(body.story || finalText).trim(),
+      p_story: finalText,
       p_audio: audioPayload,
       p_raw_transcripts: rawTranscripts,
       p_vocabulary: vocabulary,
