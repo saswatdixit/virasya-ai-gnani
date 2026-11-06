@@ -13,13 +13,20 @@ export const SAMPLE_EXPLORE_STORIES: ExploreDetailStory[] = [
     relationship: "Family culinary heritage",
     excerpt:
       "ପ୍ରତି ଗୁରୁବାର ମାଟି ହାଣ୍ଡିରେ ମୁଗ ଡାଲି ଓ ଅରୁଆ ଚାଉଳ ଦେଇ ମା' ଖେଚେଡ଼ି ରାନ୍ଧୁଥିଲେ। କାଠ ଚୁଲିର ନିଆଁ ଓ ସାମାନ୍ୟ ଘିଅ ଏବଂ ଅଦାର ସୁଗନ୍ଧ ଆଜି ବି ମନେ ପଡ଼େ।",
+    written_text:
+      "Every Thursday my grandmother, Nirmala Devi, made khechedi in a clay handi over a wood fire. Moong dal, rice, a spoon of ghee and a little ginger — nothing more. The smell reached the whole street. We offered it to Thakura first, and only then did we sit down together to eat.",
     final_text:
-      "ପ୍ରତି ଗୁରୁବାର ମାଟି ହାଣ୍ଡିରେ ମୁଗ ଡାଲି ଓ ଅରୁଆ ଚାଉଳ ଦେଇ ମା' ଖେଚେଡ଼ି ରାନ୍ଧୁଥିଲେ। କାଠ ଚୁଲିର ନିଆଁ ଓ ସାମାନ୍ୟ ଘିଅ ଏବଂ ଅଦାର ବାସ୍ନା ପୂରା ଦାଣ୍ଡକୁ ମହକାଇ ଦେଉଥିଲା। ପ୍ରଥମେ ଘରର ଠାକୁରଙ୍କୁ ଭୋଗ ଲଗାଯାଉଥିଲା, ତା'ପରେ ଆମେ ସମସ୍ତେ ଏକାଠି ବସି କଦଳୀ ପତ୍ରରେ ଖାଉଥିଲୁ। ଏହା କେବଳ ଏକ ଖାଦ୍ୟ ନଥିଲା, ଆମ ପରିବାରର ଏକ ପବିତ୍ର ସ୍ମୃତି ଥିଲା।",
-    word_count: 68,
+      "Every Thursday my grandmother, Nirmala Devi, made khechedi in a clay handi over a wood fire. Moong dal, rice, a spoon of ghee and a little ginger — nothing more. The smell reached the whole street. We offered it to Thakura first, and only then did we sit down together to eat.\n\nପ୍ରତି ଗୁରୁବାର ମାଟି ହାଣ୍ଡିରେ ମୁଗ ଡାଲି ଓ ଅରୁଆ ଚାଉଳ ଦେଇ ମା' ଖେଚେଡ଼ି ରାନ୍ଧୁଥିଲେ। କାଠ ଚୁଲିର ନିଆଁ ଓ ସାମାନ୍ୟ ଘିଅ ଏବଂ ଅଦାର ବାସ୍ନା ପୂରା ଦାଣ୍ଡକୁ ମହକାଇ ଦେଉଥିଲା। ପ୍ରଥମେ ଘରର ଠାକୁରଙ୍କୁ ଭୋଗ ଲଗାଯାଉଥିଲା, ତା'ପରେ ଆମେ ସମସ୍ତେ ଏକାଠି ବସି କଦଳୀ ପତ୍ରରେ ଖାଉଥିଲୁ। ଏହା କେବଳ ଏକ ଖାଦ୍ୟ ନଥିଲା, ଆମ ପରିବାରର ଏକ ପବିତ୍ର ସ୍ମୃତି ଥିଲା।",
+    word_count: 122,
     preserved_at: "2026-10-14T10:00:00Z",
     provenance_id: "virasya_preview_khechedi_7a8f9b",
     vocabulary_count: 3,
-    has_audio: false,
+    has_audio: true,
+    audio: {
+      filename: "Gujarati 5.ogg",
+      url: "/demo/audio/khechedi_demo.wav",
+      duration: 16.5,
+    },
     vocabulary: [
       {
         preferred: "ଖେଚେଡ଼ି",

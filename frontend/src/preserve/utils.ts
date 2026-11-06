@@ -47,6 +47,87 @@ export function combineOptionalAndTranscribedText(
   return "";
 }
 
+export interface StoryTextOutputs {
+  output1: string; // The first generated text output: Written Story Context & Notes
+  output2: string; // The second generated text output: Transcribed Oral Narrative
+  hasTwoOutputs: boolean;
+}
+
+/**
+ * Extracts and cleanly separates the two text outputs for independent rendering:
+ * - Output 1 (Text Box 1): Written story context/notes provided by user
+ * - Output 2 (Text Box 2): Transcribed oral recording / spoken speech text
+ *
+ * Ensures:
+ * 1. Independent content rendering (neither text is merged with or appended inside the other).
+ * 2. Clean multi-paragraph extraction.
+ * 3. Safe fallback for single-output records (e.g. oral-only or text-only stories).
+ */
+export function extractStoryTextOutputs(story: {
+  final_text?: string | null;
+  written_text?: string | null;
+  writtenText?: string | null;
+}): StoryTextOutputs {
+  const final = (story.final_text || "").trim();
+  const explicitWritten = (story.written_text || story.writtenText || "").trim();
+
+  // Scenario 1: explicit written_text / writtenText is provided
+  if (explicitWritten) {
+    if (final.startsWith(explicitWritten)) {
+      const remaining = final.slice(explicitWritten.length).trim();
+      return {
+        output1: explicitWritten,
+        output2: remaining,
+        hasTwoOutputs: Boolean(remaining),
+      };
+    }
+    if (final.includes(explicitWritten)) {
+      const parts = final.split(explicitWritten);
+      const remaining = parts.join("").trim();
+      return {
+        output1: explicitWritten,
+        output2: remaining,
+        hasTwoOutputs: Boolean(remaining),
+      };
+    }
+    if (final && final !== explicitWritten) {
+      return {
+        output1: explicitWritten,
+        output2: final,
+        hasTwoOutputs: true,
+      };
+    }
+    return {
+      output1: explicitWritten,
+      output2: "",
+      hasTwoOutputs: false,
+    };
+  }
+
+  // Scenario 2: final_text was combined from optional text and transcribed speech via "\n\n"
+  if (final.includes("\n\n")) {
+    const parts = final.split(/\n\s*\n/);
+    if (parts.length >= 2) {
+      const first = parts[0].trim();
+      const rest = parts.slice(1).join("\n\n").trim();
+      if (first && rest) {
+        return {
+          output1: first,
+          output2: rest,
+          hasTwoOutputs: true,
+        };
+      }
+    }
+  }
+
+  // Scenario 3: Single output fallback
+  return {
+    output1: "",
+    output2: final,
+    hasTwoOutputs: false,
+  };
+}
+
 export const getClock = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 

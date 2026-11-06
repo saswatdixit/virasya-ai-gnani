@@ -11,6 +11,7 @@ import {
 import { SAMPLE_EXPLORE_STORIES } from "./sampleStories";
 import { PreserveStoryIcon } from "../components/shared/Icons";
 import { getStoryAudioPlaybackUrl } from "../supabase";
+import { extractStoryTextOutputs } from "../preserve/utils";
 
 const CATEGORIES = [
   "All",
@@ -186,7 +187,6 @@ function ExploreAudioPlayer({
       </div>
 
       <div className="exp-audio-meta">
-        <span className="exp-audio-filename">{audio.filename || "recording"}</span>
         <span className="exp-audio-badge">
           {audio.storage_path ? "Stored sovereignly in repository" : "Archival audio record"}
         </span>
@@ -410,9 +410,21 @@ export default function ExplorePage() {
         ) : error ? (
           <div className="exp-empty">
             <p style={{ color: "var(--v-alert)", fontWeight: 600 }}>{error}</p>
-            <button type="button" className="p-btn p-btn-dark p-btn-sm" style={{ marginTop: 14 }} onClick={loadFeed}>
-              Retry loading
-            </button>
+            <div className="p-row" style={{ justifyContent: "center", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
+              <button type="button" className="p-btn p-btn-dark p-btn-sm" onClick={loadFeed}>
+                Retry loading
+              </button>
+              <button
+                type="button"
+                className="p-btn p-btn-ghost p-btn-sm"
+                onClick={() => {
+                  setError(null);
+                  setShowPreviewStories(true);
+                }}
+              >
+                Explore Preview Stories (Demo Mode) →
+              </button>
+            </div>
           </div>
         ) : !hasRealStories && !showPreviewStories ? (
           /* Thoughtful, Attractive Empty State */
@@ -657,25 +669,91 @@ export default function ExplorePage() {
                   <ExploreAudioPlayer storyId={detailStory.id} audio={detailStory.audio} />
                 )}
 
-                {/* Full Preserved Narrative */}
-                <section className="exp-narrative-section">
-                  <div className="p-eyebrow">PRESERVED NARRATIVE</div>
-                  <div
-                    className="p-odia-text exp-narrative-content"
-                    lang="or"
-                  >
-                    {detailStory.final_text
-                      ? detailStory.final_text
-                          .split(/\n\s*\n|\n/)
-                          .filter((p) => p.trim())
-                          .map((para, i) => (
-                            <p key={i} className="exp-narrative-para">
-                              {para}
-                            </p>
-                          ))
-                      : <em style={{ color: "var(--v-text-sub)" }}>No transcript text preserved.</em>}
-                  </div>
-                </section>
+                {/* Preserved Narrative Outputs */}
+                {(() => {
+                  const { output1, output2, hasTwoOutputs } = extractStoryTextOutputs(detailStory);
+
+                  if (hasTwoOutputs) {
+                    return (
+                      <section className="exp-narrative-section">
+                        <div className="p-eyebrow" style={{ marginBottom: 10 }}>
+                          PRESERVED NARRATIVE & CONTEXT
+                        </div>
+
+                        <div className="exp-narrative-dual-grid">
+                          {/* Text Box 1: Written Story Context */}
+                          <div className="exp-narrative-box exp-narrative-box-written">
+                            <div className="exp-narrative-box-header">
+                              <span className="exp-narrative-box-tag">Text Output 1</span>
+                              <h3 className="exp-narrative-box-title">Written Story Context</h3>
+                              <p className="exp-narrative-box-sub">User-provided background notes & context</p>
+                            </div>
+                            <div className="exp-narrative-box-body" lang="or">
+                              {output1
+                                .split(/\n\s*\n|\n/)
+                                .filter((p) => p.trim())
+                                .map((para, i) => (
+                                  <p key={i} className="exp-narrative-para">
+                                    {para}
+                                  </p>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Text Box 2: Transcribed Audio Narrative */}
+                          <div className="exp-narrative-box exp-narrative-box-transcribed">
+                            <div className="exp-narrative-box-header">
+                              <span className="exp-narrative-box-tag">Text Output 2</span>
+                              <h3 className="exp-narrative-box-title">Transcribed Audio Narrative</h3>
+                              <p className="exp-narrative-box-sub">Oral recording transcript & speech text</p>
+                            </div>
+                            <div className="p-odia-text exp-narrative-box-body" lang="or">
+                              {output2
+                                .split(/\n\s*\n|\n/)
+                                .filter((p) => p.trim())
+                                .map((para, i) => (
+                                  <p key={i} className="exp-narrative-para">
+                                    {para}
+                                  </p>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    );
+                  }
+
+                  // Single narrative output fallback (oral recording transcript or single written story)
+                  const singleText = output2 || output1;
+                  return (
+                    <section className="exp-narrative-section">
+                      <div className="p-eyebrow" style={{ marginBottom: 10 }}>
+                        PRESERVED NARRATIVE
+                      </div>
+                      <div className="exp-narrative-box exp-narrative-box-single">
+                        <div className="exp-narrative-box-header">
+                          <h3 className="exp-narrative-box-title">
+                            {detailStory.audio ? "Transcribed Audio Narrative" : "Preserved Narrative"}
+                          </h3>
+                        </div>
+                        <div className="p-odia-text exp-narrative-box-body" lang="or">
+                          {singleText ? (
+                            singleText
+                              .split(/\n\s*\n|\n/)
+                              .filter((p) => p.trim())
+                              .map((para, i) => (
+                                <p key={i} className="exp-narrative-para">
+                                  {para}
+                                </p>
+                              ))
+                          ) : (
+                            <em style={{ color: "var(--v-text-sub)" }}>No transcript text preserved.</em>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })()}
 
                 {/* Cultural Glossary */}
                 {detailStory.vocabulary && detailStory.vocabulary.length > 0 && (

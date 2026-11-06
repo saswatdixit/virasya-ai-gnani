@@ -171,7 +171,8 @@ export async function preserveStoryToSupabase(
 const EXPLORE_PUBLIC_COLUMNS =
   "id, title, carrier, place, roots, category, language, period, final_text, audio_public_playback, provenance_id, preserved_at, created_at, audio, vocabulary";
 
-const EXPLORE_DETAIL_COLUMNS = EXPLORE_PUBLIC_COLUMNS;
+const EXPLORE_DETAIL_COLUMNS =
+  "id, title, carrier, place, roots, category, language, period, written_text, final_text, audio_public_playback, provenance_id, preserved_at, created_at, audio, vocabulary";
 
 /**
  * Queries Supabase public.stories for preserved public stories.
@@ -311,6 +312,7 @@ export async function fetchExploreStoryDetailFromSupabase(
       vocabulary_count: Array.isArray(data.vocabulary) ? data.vocabulary.length : 0,
       has_audio: Boolean(data.audio && data.audio_public_playback),
       vocabulary: Array.isArray(data.vocabulary) ? (data.vocabulary as any) : [],
+      written_text: (data as any)?.written_text || payload.writtenText || "",
       final_text: data.final_text || "",
       audio: safeAudio,
       raw_transcripts: undefined,

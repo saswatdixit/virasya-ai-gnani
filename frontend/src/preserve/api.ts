@@ -750,6 +750,7 @@ export interface ExploreStoryCard {
 
 export interface ExploreDetailStory extends ExploreStoryCard {
   final_text: string;
+  written_text?: string;
   audio?: {
     filename: string;
     url?: string;
