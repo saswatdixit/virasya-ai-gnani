@@ -161,7 +161,7 @@ export default function AudioPlayer({
         }}
       >
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <strong style={{ fontSize: 15 }}>{audio.name}</strong>
+          <strong style={{ fontSize: 15 }}>Master Oral Recording</strong>
           <span className="p-small">
             {formatTime(audio.duration)}
             {audio.size ? ` · ${formatSize(audio.size)}` : ""}
@@ -199,7 +199,7 @@ export default function AudioPlayer({
 
       {audio.kind === "lost" ? (
         <p className="p-small" style={{ margin: "6px 0" }}>
-          Your earlier recording ({audio.name}) is referenced in metadata. In this frontend demo, raw audio blobs are not persisted in localStorage across browser visits.
+          Your earlier audio recording is referenced in metadata. In this frontend demo, raw audio blobs are not persisted in localStorage across browser visits.
         </p>
       ) : audio.kind === "demo" ? (
         <div className="p-audio-player">

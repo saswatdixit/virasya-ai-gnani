@@ -4,6 +4,7 @@ import Header from "../components/layout/Header";
 import { useAuth } from "../auth";
 import { listStoriesFromBackend, type StoryPayload } from "../preserve/api";
 import { getStoryAudioPlaybackUrl, isSupabaseConfigured, processPendingAudioCleanups } from "../supabase";
+import { extractStoryTextOutputs } from "../preserve/utils";
 
 type ArchiveTab = "all" | "private" | "public";
 
@@ -525,12 +526,51 @@ export default function MyArchivePage() {
               )}
 
               {/* Narrative Text */}
-              <div className="archive-narrative-box">
-                <h3 className="archive-player-title">Preserved Narrative</h3>
-                <div className="archive-narrative-text">
-                  {selectedStory.final_text || selectedStory.writtenText || selectedStory.story || ""}
-                </div>
-              </div>
+              {(() => {
+                const { output1, output2, hasTwoOutputs } = extractStoryTextOutputs({
+                  final_text: selectedStory.final_text || selectedStory.story,
+                  written_text: selectedStory.writtenText || (selectedStory as any).written_text,
+                });
+
+                if (hasTwoOutputs) {
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 28 }}>
+                      <div className="archive-narrative-box" style={{ margin: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", padding: "2px 6px", borderRadius: 3 }}>
+                            Text Output 1
+                          </span>
+                          <h3 className="archive-player-title" style={{ margin: 0 }}>Written Story Context</h3>
+                        </div>
+                        <div className="archive-narrative-text">
+                          {output1}
+                        </div>
+                      </div>
+
+                      <div className="archive-narrative-box" style={{ margin: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", padding: "2px 6px", borderRadius: 3 }}>
+                            Text Output 2
+                          </span>
+                          <h3 className="archive-player-title" style={{ margin: 0 }}>Transcribed Audio Narrative</h3>
+                        </div>
+                        <div className="archive-narrative-text">
+                          {output2}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="archive-narrative-box">
+                    <h3 className="archive-player-title">Preserved Narrative</h3>
+                    <div className="archive-narrative-text">
+                      {selectedStory.final_text || selectedStory.writtenText || selectedStory.story || ""}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Cultural Vocabulary Glossary */}
               {Array.isArray(selectedStory.vocabulary) && selectedStory.vocabulary.length > 0 && (

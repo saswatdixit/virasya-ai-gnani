@@ -215,12 +215,36 @@ export default function Page6FinalReview() {
               </div>
             </div>
 
-            <div className="p-success-excerpt">
-              <h3 className="p-side-title" style={{ marginBottom: 8 }}>
-                Preserved {form.language ? `${form.language} ` : ""}Narrative
-              </h3>
-              <p className="p-preserved-text">{finalText}</p>
-            </div>
+            {opt && speechPart ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginTop: 16 }}>
+                <div className="p-success-excerpt" style={{ margin: 0, padding: 16, background: "rgba(48, 34, 29, 0.03)", borderRadius: 6, border: "1px solid var(--v-line)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", padding: "2px 6px", borderRadius: 3 }}>
+                      Text Output 1
+                    </span>
+                    <h3 className="p-side-title" style={{ margin: 0 }}>Written Story Context</h3>
+                  </div>
+                  <p className="p-preserved-text" style={{ margin: 0, fontSize: 15, lineHeight: 1.8 }}>{opt}</p>
+                </div>
+
+                <div className="p-success-excerpt" style={{ margin: 0, padding: 16, background: "rgba(48, 34, 29, 0.03)", borderRadius: 6, border: "1px solid var(--v-line)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", padding: "2px 6px", borderRadius: 3 }}>
+                      Text Output 2
+                    </span>
+                    <h3 className="p-side-title" style={{ margin: 0 }}>Transcribed Audio Narrative</h3>
+                  </div>
+                  <p className="p-preserved-text" style={{ margin: 0, fontSize: 15, lineHeight: 1.8 }}>{speechPart}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-success-excerpt">
+                <h3 className="p-side-title" style={{ marginBottom: 8 }}>
+                  Preserved {form.language ? `${form.language} ` : ""}Narrative
+                </h3>
+                <p className="p-preserved-text">{finalText}</p>
+              </div>
+            )}
 
             {audio && (
               <div style={{ marginTop: 20 }}>
@@ -311,17 +335,63 @@ export default function Page6FinalReview() {
               </div>
 
               {/* Story Narrative Box */}
-              <div className="p-narrative-review-box">
-                <div className="p-review-narrative-top">
-                  <span className="p-review-narrative-label">Authoritative Odia Narrative</span>
-                  <span className="p-small">
-                    {finalWordCount} words · {punct.manual !== null ? "Manually punctuated" : "Oral draft"}
-                  </span>
+              {opt && speechPart ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 20 }}>
+                  {/* Text Box 1: Written Story Context */}
+                  <div className="p-narrative-review-box" style={{ background: "var(--v-field)", border: "1px solid var(--v-line)", borderRadius: 6, padding: "16px 20px" }}>
+                    <div className="p-review-narrative-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid var(--v-line)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase" }}>
+                          Text Output 1
+                        </span>
+                        <strong style={{ fontSize: 14, color: "var(--v-ink)" }}>Written Story Context</strong>
+                      </div>
+                      <span className="p-small" style={{ color: "var(--v-text-sub)" }}>
+                        {wordCount(opt)} words · User notes
+                      </span>
+                    </div>
+                    <div className="p-review-text" style={{ fontSize: "15px", lineHeight: "1.8", color: "var(--v-ink)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                      {opt.split(/\n\s*\n|\n/).filter(p => p.trim()).map((para, i) => (
+                        <p key={i} style={{ margin: "0 0 10px 0" }}>{para}</p>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Text Box 2: Transcribed Audio Narrative */}
+                  <div className="p-narrative-review-box" style={{ background: "var(--v-field)", border: "1px solid var(--v-line)", borderRadius: 6, padding: "16px 20px" }}>
+                    <div className="p-review-narrative-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid var(--v-line)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase" }}>
+                          Text Output 2
+                        </span>
+                        <strong style={{ fontSize: 14, color: "var(--v-ink)" }}>Transcribed Audio Narrative</strong>
+                      </div>
+                      <span className="p-small" style={{ color: "var(--v-text-sub)" }}>
+                        {wordCount(speechPart)} words · {punct.manual !== null ? "Manually punctuated" : "Oral draft"}
+                      </span>
+                    </div>
+                    <div className="p-review-text" style={{ fontFamily: "'Noto Serif Odia', serif", fontSize: "16px", lineHeight: "1.8", color: "var(--v-ink)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                      {speechPart.split(/\n\s*\n|\n/).filter(p => p.trim()).map((para, i) => (
+                        <p key={i} style={{ margin: "0 0 10px 0" }}>{para}</p>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="p-review-text" style={{ fontFamily: "'Noto Serif Odia', serif", fontSize: "16px", lineHeight: "1.8" }}>
-                  {finalText}
+              ) : (
+                <div className="p-narrative-review-box">
+                  <div className="p-review-narrative-top">
+                    <span className="p-review-narrative-label">
+                      {audio ? "Authoritative Odia Narrative" : "Preserved Written Story"}
+                    </span>
+                    <span className="p-small">
+                      {finalWordCount} words · {punct.manual !== null ? "Manually punctuated" : "Oral draft"}
+                    </span>
+                  </div>
+                  <div className="p-review-text" style={{ fontFamily: "'Noto Serif Odia', serif", fontSize: "16px", lineHeight: "1.8", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    {finalText}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Master Audio Box */}
               {audio && (
@@ -603,7 +673,7 @@ export default function Page6FinalReview() {
             Your story visibility is set to <strong>{final.visibility === "public" ? "Public Heritage Archive" : "Private (Only You)"}</strong>. The story will be preserved according to this setting.
           </p>
           <p style={{ margin: 0, padding: "10px 14px", background: "rgba(184, 93, 50, 0.08)", border: "1px solid rgba(184, 93, 50, 0.25)", borderRadius: 6 }}>
-            <strong>Audio Playback:</strong> Because public audio playback is not enabled, your original voice recording (<em>{audio?.name || "recording"}</em>) will remain strictly private in your sovereign vault and will <strong>not</strong> be available for public playback in Explore.
+            <strong>Audio Playback:</strong> Because public audio playback is not enabled, your original voice recording will remain strictly private in your sovereign vault and will <strong>not</strong> be available for public playback in Explore.
           </p>
           <p style={{ margin: 0, color: "var(--v-muted)" }}>
             {final.visibility === "public"

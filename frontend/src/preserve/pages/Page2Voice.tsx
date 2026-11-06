@@ -445,7 +445,7 @@ export default function Page2Voice() {
                   <div>
                     <h2 className="p-panel-title">Attached Audio Recording</h2>
                     <p className="p-panel-sub">
-                      Saved to local repository: <strong>{audio.name}</strong>
+                      Master oral recording attached to heritage story
                     </p>
                   </div>
                 </div>

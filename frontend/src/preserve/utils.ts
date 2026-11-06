@@ -67,11 +67,12 @@ export function extractStoryTextOutputs(story: {
   final_text?: string | null;
   written_text?: string | null;
   writtenText?: string | null;
+  has_audio?: boolean;
 }): StoryTextOutputs {
   const final = (story.final_text || "").trim();
   const explicitWritten = (story.written_text || story.writtenText || "").trim();
 
-  // Scenario 1: explicit written_text / writtenText is provided
+  // Scenario 1: Authoritative written_text exists and is non-empty
   if (explicitWritten) {
     if (final.startsWith(explicitWritten)) {
       const remaining = final.slice(explicitWritten.length).trim();
@@ -104,23 +105,19 @@ export function extractStoryTextOutputs(story: {
     };
   }
 
-  // Scenario 2: final_text was combined from optional text and transcribed speech via "\n\n"
-  if (final.includes("\n\n")) {
-    const parts = final.split(/\n\s*\n/);
-    if (parts.length >= 2) {
-      const first = parts[0].trim();
-      const rest = parts.slice(1).join("\n\n").trim();
-      if (first && rest) {
-        return {
-          output1: first,
-          output2: rest,
-          hasTwoOutputs: true,
-        };
-      }
-    }
+  // Scenario 2: Explicit written_text field was supplied as empty string, whitespace, or null,
+  // or historical records where written_text was not tracked.
+  // Authoritative protection: NEVER heuristically split multi-paragraph oral narratives or historical records!
+  // If records cannot be authoritatively separated, preserve the original text in a single identified fallback.
+  if (story.has_audio === false) {
+    return {
+      output1: final,
+      output2: "",
+      hasTwoOutputs: false,
+    };
   }
 
-  // Scenario 3: Single output fallback
+  // Oral or historical record with only final_text
   return {
     output1: "",
     output2: final,

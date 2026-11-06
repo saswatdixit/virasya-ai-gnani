@@ -30,12 +30,12 @@ console.log("=== Virasya Dual Text Boxes & Hidden Audio Filenames Test Suite ===
   const { extractStoryTextOutputs, combineOptionalAndTranscribedText } = utils;
 
   // ---------------------------------------------------------------------------
-  // Test 1: extractStoryTextOutputs separates two outputs cleanly
+  // Case 1: Both written context and transcription exist
   // ---------------------------------------------------------------------------
-  console.log("1. Testing clean extraction of two distinct text outputs...");
+  console.log("Case 1: Both written context and transcription exist...");
   {
     const written = "Every Thursday my grandmother, Nirmala Devi, made khechedi in a clay handi over a wood fire. Moong dal, rice, a spoon of ghee and a little ginger — nothing more.";
-    const transcribed = "કાલે હું ગુજરાત જવાનો છું અહીંયાથી વાળની દૂરી લગભગ સાતસો પચાસ કિલોમીટર છે તમે ક્યાં જશો";
+    const transcribed = "Transcribed speech narrative from oral recording.";
     const combined = `${written}\n\n${transcribed}`;
 
     const res = extractStoryTextOutputs({
@@ -52,76 +52,153 @@ console.log("=== Virasya Dual Text Boxes & Hidden Audio Filenames Test Suite ===
   }
 
   // ---------------------------------------------------------------------------
-  // Test 2: Double newline separation without explicit written_text column
+  // Case 2: Only written context exists
   // ---------------------------------------------------------------------------
-  console.log("2. Testing extraction from combined final_text without explicit written_text column...");
+  console.log("Case 2: Only written context exists...");
   {
-    const written = "Paragraph 1: Background family memory.";
-    const transcribed = "Paragraph 2: Transcribed voice recording.";
-    const combined = `${written}\n\n${transcribed}`;
-
+    const writtenOnly = "Only written notes were provided for this family story.";
     const res = extractStoryTextOutputs({
-      final_text: combined,
+      final_text: writtenOnly,
+      written_text: writtenOnly,
+      has_audio: false,
     });
 
-    assert.strictEqual(res.hasTwoOutputs, true, "Must split on double newline when two sections exist");
-    assert.strictEqual(res.output1, written);
-    assert.strictEqual(res.output2, transcribed);
-    console.log("   ✓ Extracted two outputs cleanly from combined narrative.");
+    assert.strictEqual(res.hasTwoOutputs, false, "Must not flag two outputs for written-only story");
+    assert.strictEqual(res.output1, writtenOnly, "Output 1 must retain the full written text");
+    assert.strictEqual(res.output2, "", "Output 2 must be empty");
+    console.log("   ✓ Only written context correctly falls back to single narrative container.");
   }
 
   // ---------------------------------------------------------------------------
-  // Test 3: Multi-paragraph written context and multi-paragraph transcription
+  // Case 3: Only transcription exists
   // ---------------------------------------------------------------------------
-  console.log("3. Testing multi-paragraph formatting in both text outputs...");
+  console.log("Case 3: Only transcription exists...");
   {
-    const written = "Written Para 1: Context.\n\nWritten Para 2: Details.";
-    const transcribed = "Speech Para 1: Speech story.\n\nSpeech Para 2: Speech conclusion.";
-    const combined = `${written}\n\n${transcribed}`;
+    const oralOnly = "Oral storytelling recorded and transcribed directly from voice.";
+    const res = extractStoryTextOutputs({
+      final_text: oralOnly,
+      written_text: "",
+      has_audio: true,
+    });
+
+    assert.strictEqual(res.hasTwoOutputs, false, "Must not flag two outputs for oral-only story");
+    assert.strictEqual(res.output1, "", "Output 1 must be empty");
+    assert.strictEqual(res.output2, oralOnly, "Output 2 must contain the entire transcript");
+    console.log("   ✓ Only transcription correctly falls back to single narrative container.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Case 4: Both exist but one is empty or whitespace
+  // ---------------------------------------------------------------------------
+  console.log("Case 4: Both exist but one is empty or whitespace...");
+  {
+    // Subcase 4a: written_text is whitespace only
+    const oralText = "Authentic spoken words.";
+    const resWhitespaceWritten = extractStoryTextOutputs({
+      final_text: oralText,
+      written_text: "    \n\t  ",
+      has_audio: true,
+    });
+    assert.strictEqual(resWhitespaceWritten.hasTwoOutputs, false);
+    assert.strictEqual(resWhitespaceWritten.output1, "");
+    assert.strictEqual(resWhitespaceWritten.output2, oralText);
+
+    // Subcase 4b: transcribed is empty (final_text equals written_text)
+    const writtenText = "Written memory notes.";
+    const resEmptyTranscription = extractStoryTextOutputs({
+      final_text: writtenText,
+      written_text: writtenText,
+    });
+    assert.strictEqual(resEmptyTranscription.hasTwoOutputs, false);
+    assert.strictEqual(resEmptyTranscription.output1, writtenText);
+    assert.strictEqual(resEmptyTranscription.output2, "");
+    console.log("   ✓ Whitespace/empty text safely normalized without false output splitting.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Case 5: Historical records containing only final_text (no heuristic splitting)
+  // ---------------------------------------------------------------------------
+  console.log("Case 5: Historical records containing only final_text...");
+  {
+    const historicalText = "Historical Para 1: Old village memories.\n\nHistorical Para 2: Temple construction.\n\nHistorical Para 3: Harvest ritual.";
+    const res = extractStoryTextOutputs({
+      final_text: historicalText,
+      // written_text omitted / undefined
+      has_audio: true,
+    });
+
+    assert.strictEqual(res.hasTwoOutputs, false, "Must NOT heuristically split historical records lacking authoritative written_text");
+    assert.strictEqual(res.output1, "", "Output 1 must remain empty when written context was not authoritatively tracked");
+    assert.strictEqual(res.output2, historicalText, "All historical paragraphs preserved intact without misclassification");
+    console.log("   ✓ Historical records preserved in full without unreliable string splitting.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Case 6: Multi-paragraph written context
+  // ---------------------------------------------------------------------------
+  console.log("Case 6: Multi-paragraph written context...");
+  {
+    const multiWritten = "Written Para 1: Context introduction.\n\nWritten Para 2: Genealogical details.\n\nWritten Para 3: Historical timeframe.";
+    const transcription = "Oral narration continues the event.";
+    const combined = `${multiWritten}\n\n${transcription}`;
+
+    const res = extractStoryTextOutputs({
+      final_text: combined,
+      written_text: multiWritten,
+      has_audio: true,
+    });
+
+    assert.strictEqual(res.hasTwoOutputs, true);
+    assert.strictEqual(res.output1, multiWritten, "All 3 written paragraphs preserved in Output 1");
+    assert.strictEqual(res.output2, transcription, "Transcription preserved in Output 2");
+    console.log("   ✓ Multi-paragraph written context preserved intact in Output 1.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Case 7: Multi-paragraph transcription
+  // ---------------------------------------------------------------------------
+  console.log("Case 7: Multi-paragraph transcription...");
+  {
+    const written = "Brief written note.";
+    const multiTranscribed = "Speech Para 1: Spoken folklore.\n\nSpeech Para 2: Traditional festival chant.\n\nSpeech Para 3: Blessing.";
+    const combined = `${written}\n\n${multiTranscribed}`;
 
     const res = extractStoryTextOutputs({
       final_text: combined,
       written_text: written,
+      has_audio: true,
     });
 
     assert.strictEqual(res.hasTwoOutputs, true);
-    assert.strictEqual(res.output1, written, "Multi-paragraph written text preserved intact in Output 1");
-    assert.strictEqual(res.output2, transcribed, "Multi-paragraph speech preserved intact in Output 2");
-    console.log("   ✓ Multi-paragraph structure within each container perfectly preserved.");
+    assert.strictEqual(res.output1, written);
+    assert.strictEqual(res.output2, multiTranscribed, "All 3 speech paragraphs preserved in Output 2");
+    console.log("   ✓ Multi-paragraph transcription preserved intact in Output 2.");
   }
 
   // ---------------------------------------------------------------------------
-  // Test 4: Single output fallback (Oral audio recording only, no written text)
+  // Case 8: Transcription containing punctuation, Gujarati/Hindi characters, and line breaks
   // ---------------------------------------------------------------------------
-  console.log("4. Testing single output fallback (Audio transcription only)...");
+  console.log("Case 8: Transcription containing punctuation, Indic characters, and line breaks...");
   {
-    const oralOnly = "Only speech was recorded and transcribed for this historical record.";
+    const written = "Context with English: notes, dates (1947), and names: Nirmala Devi.";
+    const indicTranscribed = "કાલે હું ગુજરાત જવાનો છું; વાળની દૂરી લગભગ ૭૫૦ કિ.મી. છે!\n\nતમે ક્યાં જશો? અચ્છા, બોકારો એ તો પાસે જ છે: શું તમે આવશો?";
+    const combined = `${written}\n\n${indicTranscribed}`;
+
     const res = extractStoryTextOutputs({
-      final_text: oralOnly,
-      written_text: "",
+      final_text: combined,
+      written_text: written,
+      has_audio: true,
     });
 
-    assert.strictEqual(res.hasTwoOutputs, false, "Must not flag two outputs for single oral text");
-    assert.strictEqual(res.output1, "", "Output 1 must be empty");
-    assert.strictEqual(res.output2, oralOnly, "Output 2 must contain the entire transcript");
-    console.log("   ✓ Oral-only stories fall back gracefully to single narrative rendering.");
-  }
-
-  // ---------------------------------------------------------------------------
-  // Test 5: Single output fallback (Written text only, no audio recording)
-  // ---------------------------------------------------------------------------
-  console.log("5. Testing single output fallback (Written text only)...");
-  {
-    const writtenOnly = "Only written notes were provided for this document.";
-    const res = extractStoryTextOutputs({
-      final_text: writtenOnly,
-      written_text: writtenOnly,
-    });
-
-    assert.strictEqual(res.hasTwoOutputs, false, "Must not flag two outputs when final equals written");
-    assert.strictEqual(res.output1, writtenOnly);
-    assert.strictEqual(res.output2, "");
-    console.log("   ✓ Written-only stories fall back gracefully to single container.");
+    assert.strictEqual(res.hasTwoOutputs, true);
+    assert.strictEqual(res.output1, written);
+    assert.strictEqual(res.output2, indicTranscribed);
+    assert.ok(res.output2.includes("ગુજરાત"));
+    assert.ok(res.output2.includes("૭૫૦"));
+    assert.ok(res.output2.includes(";"));
+    assert.ok(res.output2.includes("?"));
+    assert.ok(res.output2.includes("\n\n"));
+    console.log("   ✓ Gujarati/Indic Unicode, punctuation, numerals, and line breaks preserved perfectly.");
   }
 
   // ---------------------------------------------------------------------------
@@ -203,6 +280,62 @@ console.log("=== Virasya Dual Text Boxes & Hidden Audio Filenames Test Suite ===
 
     console.log("   ✓ Responsive 1-col mobile and 2-col desktop grid verified.");
     console.log("   ✓ Long text word-break and overflow containment verified.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 9: Verify Page6FinalReview.tsx Dual Boxes & Headings
+  // ---------------------------------------------------------------------------
+  console.log("\n9. Verifying Step 6 Final Review dual independent text boxes & headings...");
+  {
+    const page6Src = fs.readFileSync(
+      path.join(__dirname, "../src/preserve/pages/Page6FinalReview.tsx"),
+      "utf8"
+    );
+
+    assert(page6Src.includes("opt && speechPart"), "Page 6 must conditionally branch when both outputs are present");
+    assert(page6Src.includes("Written Story Context"), "Page 6 must render heading for Text Box 1");
+    assert(page6Src.includes("Transcribed Audio Narrative"), "Page 6 must render heading for Text Box 2");
+    assert(page6Src.includes("Text Output 1"), "Page 6 must label Output 1");
+    assert(page6Src.includes("Text Output 2"), "Page 6 must label Output 2");
+
+    console.log("   ✓ Step 6 Final Review independently renders dual boxes for written context and audio transcript.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 10: Verify AudioPlayer.tsx Hides Raw Audio Filename
+  // ---------------------------------------------------------------------------
+  console.log("\n10. Verifying AudioPlayer.tsx hides raw audio filename alongside playback controls...");
+  {
+    const audioPlayerSrc = fs.readFileSync(
+      path.join(__dirname, "../src/preserve/components/AudioPlayer.tsx"),
+      "utf8"
+    );
+
+    assert(
+      !audioPlayerSrc.includes("{audio.name}"),
+      "AudioPlayer.tsx must NOT render raw {audio.name} in UI header"
+    );
+    assert(audioPlayerSrc.includes("Master Oral Recording"), "AudioPlayer.tsx must display clean Master Oral Recording title");
+    assert(audioPlayerSrc.includes("formatTime"), "AudioPlayer.tsx must maintain time playback controls");
+
+    console.log("   ✓ AudioPlayer.tsx completely hides raw audio filename from playback UI.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 11: Verify MyArchivePage.tsx Dual Boxes Support
+  // ---------------------------------------------------------------------------
+  console.log("\n11. Verifying MyArchivePage.tsx dual boxes for preserved stories...");
+  {
+    const myArchiveSrc = fs.readFileSync(
+      path.join(__dirname, "../src/archive/MyArchivePage.tsx"),
+      "utf8"
+    );
+
+    assert(myArchiveSrc.includes("extractStoryTextOutputs"), "MyArchivePage must use extractStoryTextOutputs");
+    assert(myArchiveSrc.includes("Written Story Context"), "MyArchivePage must include heading for Box 1");
+    assert(myArchiveSrc.includes("Transcribed Audio Narrative"), "MyArchivePage must include heading for Box 2");
+
+    console.log("   ✓ MyArchivePage reader displays dual independent boxes when both outputs are present.");
   }
 
   console.log("\n=== ALL DUAL TEXT BOX & AUDIO PLAYER TESTS PASSED (100%) ===");
