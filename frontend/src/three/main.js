@@ -6,14 +6,15 @@ export function initThreeScene() {
   if (!heroSceneCheck) return;
   if (heroSceneCheck.querySelector("canvas")) return;
 
-  (() => {
+  return (() => {
     "use strict";
     document.documentElement.classList.add("js");
     const $ = (s, r = document) => r.querySelector(s),
       $$ = (s, r = document) => [...r.querySelectorAll(s)];
     const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
     let reduced = motionQuery.matches;
-    motionQuery.addEventListener("change", (e) => applyMotion(e.matches));
+    const handleMotionChange = (e) => applyMotion(e.matches);
+    motionQuery.addEventListener("change", handleMotionChange);
     const observer = new IntersectionObserver(
       (es) =>
         es.forEach((e) => {
@@ -154,7 +155,7 @@ export function initThreeScene() {
           "Your saved preferences have been cleared.";
       }
     });
-    $(".back-top").addEventListener("click", () =>
+    $(".back-top")?.addEventListener("click", () =>
       window.scrollTo({ top: 0, behavior: reduced ? "instant" : "smooth" }),
     );
     const footerWord = $(".footer-brand");
@@ -365,27 +366,22 @@ export function initThreeScene() {
         }
       });
     }
-    window.addEventListener(
-      "scroll",
-      () => {
-        dirty = true;
-        if (manualOpen !== null && Math.abs(scrollY - openY) > 100)
-          manualOpen = null;
-      },
-      { passive: true },
-    );
-    window.addEventListener(
-      "resize",
-      () => {
-        dirty = renderDirty = true;
-        resizeScene();
-      },
-      { passive: true },
-    );
-    document.addEventListener("visibilitychange", () => {
+    const scrollHandler = () => {
+      dirty = true;
+      if (manualOpen !== null && Math.abs(scrollY - openY) > 100)
+        manualOpen = null;
+    };
+    const resizeHandler = () => {
+      dirty = renderDirty = true;
+      resizeScene();
+    };
+    const visibilityHandler = () => {
       lastFrameTime = 0;
       dirty = renderDirty = true;
-    });
+    };
+    window.addEventListener("scroll", scrollHandler, { passive: true });
+    window.addEventListener("resize", resizeHandler, { passive: true });
+    document.addEventListener("visibilitychange", visibilityHandler);
     function resizeScene() {
       if (!renderer || !camera) return;
       const w = host.clientWidth,
@@ -603,7 +599,11 @@ export function initThreeScene() {
       toolbar = $(".core-toolbar"),
       heroEyebrow = $("#hero-chapter-label"),
       ticks = $$(".chapter-ticks b");
+    let animFrameId = null;
+    let isDestroyed = false;
+
     function updateLayout() {
+      if (isDestroyed || !hero || !document.body.contains(hero)) return;
       const y = scrollY,
         h = innerHeight,
         mobile = innerWidth < 761 || (innerWidth <= 900 && innerHeight >= 850),
@@ -615,13 +615,22 @@ export function initThreeScene() {
           );
       const p = heroProgress;
       const inHero = hr.bottom > h * 0.55 && hr.top <= 0;
-      $("#header").classList.toggle("scrolled", y > 130);
-      $("#header").classList.toggle("hero-nav", inHero && y > 130 && p < 0.84);
-      $(".back-top").classList.toggle("show", y > h);
-      $(".scroll-progress").style.transform =
-        "scaleX(" +
-        clamp(y / Math.max(1, document.documentElement.scrollHeight - h)) +
-        ")";
+      const header = $("#header");
+      if (header) {
+        header.classList.toggle("scrolled", y > 130);
+        header.classList.toggle("hero-nav", inHero && y > 130 && p < 0.84);
+      }
+      const backTop = $(".back-top");
+      if (backTop) {
+        backTop.classList.toggle("show", y > h);
+      }
+      const scrollProgress = $(".scroll-progress");
+      if (scrollProgress) {
+        scrollProgress.style.transform =
+          "scaleX(" +
+          clamp(y / Math.max(1, document.documentElement.scrollHeight - h)) +
+          ")";
+      }
       const leave = smooth(0.05, 0.3, p),
         chapterIn = smooth(0.24, 0.39, p),
         chapterOut = smooth(0.64, 0.78, p),
@@ -694,7 +703,11 @@ export function initThreeScene() {
       renderDirty = true;
     }
     function tick(t) {
-      requestAnimationFrame(tick);
+      if (isDestroyed || !document.getElementById("hero-scene")) {
+        animFrameId = null;
+        return;
+      }
+      animFrameId = requestAnimationFrame(tick);
       if (document.hidden) return;
       if (dirty) updateLayout();
       if (
@@ -808,6 +821,30 @@ export function initThreeScene() {
         host.dataset.exploded = (open > 0.5).toString();
       }
     }
-    requestAnimationFrame(tick);
+    animFrameId = requestAnimationFrame(tick);
+
+    function destroy() {
+      isDestroyed = true;
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+      window.removeEventListener("scroll", scrollHandler);
+      window.removeEventListener("resize", resizeHandler);
+      document.removeEventListener("visibilitychange", visibilityHandler);
+      try {
+        motionQuery.removeEventListener("change", handleMotionChange);
+      } catch {}
+      observer.disconnect();
+      if (renderer) {
+        try {
+          renderer.dispose();
+          if (renderer.domElement && renderer.domElement.parentNode) {
+            renderer.domElement.parentNode.removeChild(renderer.domElement);
+          }
+        } catch {}
+      }
+    }
+    return destroy;
   })();
 }

@@ -3,7 +3,7 @@ import { usePreserve } from "../context/PreserveContext";
 import { useAuth } from "../../auth";
 import { uploadAudioToPrivateBucket, isSupabaseConfigured } from "../../supabase";
 import { uploadAudioToBackend, isLocalDev } from "../api";
-import { formatTime } from "../utils";
+import { formatTime, convertAudioBlobTo16kPcmWav } from "../utils";
 import AudioPlayer from "../components/AudioPlayer";
 import { LANGUAGE_OPTIONS } from "../types";
 import {
@@ -174,7 +174,7 @@ export default function Page2Voice() {
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
         const resolvedType = mr.mimeType || supportedMime || "audio/webm";
-        const blob = new Blob(audioChunksRef.current, { type: resolvedType });
+        let blob = new Blob(audioChunksRef.current, { type: resolvedType });
         if (blob.size === 0) {
           setErr("Recording was empty. Please check your microphone and try again.");
           setRecState("idle");
@@ -187,13 +187,22 @@ export default function Page2Voice() {
           return;
         }
 
+        // Normalize WebM browser recordings to standard 16kHz mono 16-bit PCM WAV for ASR compatibility
+        if (resolvedType.includes("webm")) {
+          try {
+            blob = await convertAudioBlobTo16kPcmWav(blob);
+          } catch (convErr) {
+            console.warn("[Voice] Client-side WAV normalization notice:", convErr);
+          }
+        }
+
         let ext = "webm";
-        if (resolvedType.includes("ogg")) {
+        if (blob.type.includes("wav") || resolvedType.includes("wav")) {
+          ext = "wav";
+        } else if (resolvedType.includes("ogg")) {
           ext = "ogg";
         } else if (resolvedType.includes("mp4") || resolvedType.includes("m4a") || resolvedType.includes("aac")) {
           ext = "m4a";
-        } else if (resolvedType.includes("wav")) {
-          ext = "wav";
         }
 
         const filename = `recording_${Date.now()}.${ext}`;

@@ -125,6 +125,76 @@ export function extractStoryTextOutputs(story: {
   };
 }
 
+/**
+ * Converts an in-memory audio Blob (such as browser-recorded WebM) to a standard 16kHz mono 16-bit PCM WAV Blob.
+ *
+ * This guarantees client-side recordings produce a format universally accepted by the ASR provider
+ * (Gnani Prisma STT v2.5 / v3 accepts WAV, OGG, M4A, FLAC, AAC, MP3) without requiring external FFmpeg
+ * binaries in serverless or Deno Edge Function environments.
+ */
+export async function convertAudioBlobTo16kPcmWav(sourceBlob: Blob): Promise<Blob> {
+  if (typeof window === "undefined") return sourceBlob;
+  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioCtx) return sourceBlob;
+
+  const arrayBuffer = await sourceBlob.arrayBuffer();
+  if (!arrayBuffer || arrayBuffer.byteLength === 0) return sourceBlob;
+
+  const audioCtx = new AudioCtx();
+  let decodedBuffer: AudioBuffer;
+  try {
+    decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  } finally {
+    if (typeof audioCtx.close === "function") {
+      audioCtx.close().catch(() => {});
+    }
+  }
+
+  const targetRate = 16000;
+  const numSamples = Math.ceil(decodedBuffer.duration * targetRate);
+  if (numSamples <= 0) return sourceBlob;
+
+  const OfflineCtx = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext;
+  if (!OfflineCtx) return sourceBlob;
+
+  const offlineCtx = new OfflineCtx(1, numSamples, targetRate);
+  const source = offlineCtx.createBufferSource();
+  source.buffer = decodedBuffer;
+  source.connect(offlineCtx.destination);
+  source.start(0);
+  const resampled = await offlineCtx.startRendering();
+
+  const pcmData = resampled.getChannelData(0);
+  const wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
+  const view = new DataView(wavBuffer);
+
+  function writeString(offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + pcmData.length * 2, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true); // PCM format chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, 1, true); // Mono (1 channel)
+  view.setUint32(24, targetRate, true);
+  view.setUint32(28, targetRate * 2, true); // byte rate (16000 * 2)
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // bits per sample
+  writeString(36, "data");
+  view.setUint32(40, pcmData.length * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < pcmData.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, pcmData[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return new Blob([wavBuffer], { type: "audio/wav" });
+}
+
 export const getClock = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 

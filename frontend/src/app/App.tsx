@@ -226,10 +226,15 @@ function AppContent() {
     !isPlaceholder;
 
   useEffect(() => {
+    setupVirasyaBranding();
     if (isHomeRoute) {
-      initThreeScene();
+      const cleanup = initThreeScene();
+      return () => {
+        if (typeof cleanup === "function") {
+          cleanup();
+        }
+      };
     }
-    return setupVirasyaBranding();
   }, [isHomeRoute]);
 
   const renderContent = () => {
