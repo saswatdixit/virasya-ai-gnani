@@ -1915,6 +1915,20 @@ html.motion-reduced {
   height: 62px;
   margin-bottom: 35px;
 }
+.hero-portal-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin: 0 auto 30px;
+  display: block;
+}
+.dialog-brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-bottom: 20px;
+  display: block;
+}
 .hero-portal-content {
   opacity: 0;
   transform: translateY(50px);
@@ -2161,6 +2175,11 @@ header#header.hero-nav .mark {
   .hero-portal .mark {
     width: 48px;
     height: 48px;
+  }
+  .hero-portal-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 20px;
   }
   .hero-portal-content .eyebrow {
     font-size: 8px;

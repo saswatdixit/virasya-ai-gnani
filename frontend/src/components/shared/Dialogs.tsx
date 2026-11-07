@@ -79,12 +79,13 @@ export default function Dialogs() {
           ×
         </button>
         <div id="setup-pane">
-          <span className="mark dialog-mark" aria-hidden={true}>
-            <i></i>
-            <i></i>
-            <i></i>
-            <i></i>
-          </span>
+          <img
+            src="/virasya-logo.png"
+            alt="Virasya"
+            className="dialog-brand-logo"
+            width="48"
+            height="48"
+          />
           <p className="eyebrow" id="selected-plan">
             YOUR FIRST STEP
           </p>
@@ -133,12 +134,13 @@ export default function Dialogs() {
           </form>
         </div>
         <div id="success-pane" className="success-pane" hidden={true}>
-          <span className="mark" aria-hidden={true}>
-            <i></i>
-            <i></i>
-            <i></i>
-            <i></i>
-          </span>
+          <img
+            src="/virasya-logo.png"
+            alt="Virasya"
+            className="dialog-brand-logo"
+            width="48"
+            height="48"
+          />
           <h2 id="welcome-title">Room for brilliant.</h2>
           <p>
             Your archive preview is ready. Pick a starting point, run a sample
@@ -162,12 +164,13 @@ export default function Dialogs() {
         >
           ×
         </button>
-        <span className="mark dialog-mark" aria-hidden={true}>
-          <i></i>
-          <i></i>
-          <i></i>
-          <i></i>
-        </span>
+        <img
+          src="/virasya-logo.png"
+          alt="Virasya"
+          className="dialog-brand-logo"
+          width="48"
+          height="48"
+        />
         <h2 id="about-title">A little transparency.</h2>
         <p>
           Virasya is an original interactive product concept. The archive

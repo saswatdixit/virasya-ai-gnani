@@ -146,16 +146,13 @@ export default function Hero() {
           </div>
           <div className="hero-portal" aria-hidden={true}>
             <div className="hero-portal-content">
-              <span
-                className="mark"
-                aria-hidden={true}
-                style={{ marginInline: "auto" }}
-              >
-                <i></i>
-                <i></i>
-                <i></i>
-                <i></i>
-              </span>
+              <img
+                src="/virasya-logo.png"
+                alt="Virasya"
+                className="hero-portal-logo"
+                width="80"
+                height="80"
+              />
               <div className="eyebrow">03 / A LEGACY IN THE MAKING.</div>
               <h2>
                 Your Story Begins Here.
