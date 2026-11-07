@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import io
 import subprocess
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Generator
 
 import numpy as np
 import soundfile as sf
@@ -27,6 +30,15 @@ SUPPORTED_SUFFIXES = {
     ".m4a",
     ".aac",
     ".webm",
+}
+# Formats directly accepted by Gnani Prisma STT REST API
+PROVIDER_SUPPORTED_SUFFIXES = {
+    ".wav",
+    ".ogg",
+    ".mp3",
+    ".m4a",
+    ".aac",
+    ".flac",
 }
 MAX_DURATION_SECONDS = 60.0
 _FFMPEG_FALLBACK_SUFFIXES = {".mp3", ".m4a", ".aac", ".webm"}
@@ -105,6 +117,71 @@ def _ffmpeg_decode(path: Path) -> tuple[np.ndarray, int]:
     except Exception as exc:
         raise CorruptAudioError(f"Could not decode audio file: {path.name}") from exc
     return data, int(rate)
+
+
+def convert_to_pcm_wav(input_path: Path, output_path: Path) -> None:
+    """Convert any supported audio file to standard 16kHz mono 16-bit PCM WAV using ffmpeg."""
+    try:
+        process = subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-v",
+                "error",
+                "-i",
+                str(input_path),
+                "-ar",
+                "16000",
+                "-ac",
+                "1",
+                "-c:a",
+                "pcm_s16le",
+                str(output_path),
+            ],
+            check=False,
+            capture_output=True,
+            timeout=30.0,
+        )
+    except FileNotFoundError as exc:
+        raise UnsupportedFormatError(
+            f"Cannot convert {input_path.suffix} without ffmpeg installed."
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise CorruptAudioError(
+            f"Audio conversion timed out for {input_path.name}."
+        ) from exc
+
+    if process.returncode != 0:
+        detail = process.stderr.decode(errors="ignore")[:200]
+        raise CorruptAudioError(
+            f"Could not convert {input_path.name} to WAV: {detail}"
+        )
+
+
+@contextmanager
+def prepare_provider_audio(path: Path) -> Generator[Path, None, None]:
+    """Yield a path to an audio file in a format accepted by the ASR provider.
+
+    If the input format is already supported by the provider (.wav, .ogg, .mp3, .m4a, .aac, .flac),
+    it is yielded directly with zero conversion overhead.
+    If the format is not directly accepted (e.g. .webm), it is converted to a temporary 16kHz mono
+    PCM WAV file, yielded for dispatch, and guaranteed to be deleted upon context exit.
+    """
+    clean_path = _check_audio_path(path)
+    if clean_path.suffix.lower() in PROVIDER_SUPPORTED_SUFFIXES:
+        yield clean_path
+        return
+
+    # Normalization required for provider compatibility (e.g. browser WebM recordings)
+    temp_wav: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+            temp_wav = Path(tf.name)
+        convert_to_pcm_wav(clean_path, temp_wav)
+        yield temp_wav
+    finally:
+        if temp_wav is not None:
+            temp_wav.unlink(missing_ok=True)
 
 
 def _read_audio(path: Path) -> tuple[np.ndarray, int]:

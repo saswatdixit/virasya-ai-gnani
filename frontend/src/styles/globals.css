@@ -2060,16 +2060,18 @@ header#header.hero-nav .mark {
     gap: 22px;
   }
   .hero-scene {
-    inset: 39% -5% 10%;
+    inset: 39% 0 10% 0;
+    max-width: 100%;
   }
   .hero-art {
     position: absolute;
     top: 40%;
     bottom: 8%;
     height: auto;
-    width: 115%;
-    right: -7%;
-    margin: 0;
+    width: 100%;
+    right: 0;
+    left: 0;
+    margin: 0 auto;
     max-height: none;
   }
   .hero-orbits {
@@ -2692,6 +2694,9 @@ header#header.placeholder-header .nav-icon-btn:hover {
   box-shadow: none;
   transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
+.nav-cta .nav-cta-text-short {
+  display: none;
+}
 .nav-cta .arrow {
   font-size: 14px;
   line-height: 1;
@@ -2786,17 +2791,37 @@ header#header.hero-nav .nav-cta:hover {
 }
 @media (max-width: 360px) {
   :root {
-    --gutter: 12px;
+    --gutter: 10px;
+  }
+  .header-left .wordmark .brand-logo {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .header-left .wordmark .brand-text {
+    font-size: 15px !important;
+  }
+  .header-left {
+    gap: 6px;
   }
   .header-right {
     gap: 6px;
   }
   .nav-cta {
-    font-size: 10px !important;
+    font-size: 10.5px !important;
     padding: 0 8px !important;
     height: 34px;
     min-height: 34px !important;
     max-height: 34px;
+    gap: 4px !important;
+  }
+  .nav-cta .nav-cta-text-full {
+    display: none !important;
+  }
+  .nav-cta .nav-cta-text-short {
+    display: inline !important;
+  }
+  .nav-cta .arrow {
+    display: none !important;
   }
   .menu-button {
     width: 34px !important;

@@ -28,7 +28,10 @@ from virasya_ai.exceptions import (
     ProviderUnavailableError,
 )
 from virasya_ai.transcription.base import TranscriptResult
-from virasya_ai.transcription.ingestion.audio import validate_audio_file
+from virasya_ai.transcription.ingestion.audio import (
+    prepare_provider_audio,
+    validate_audio_file,
+)
 
 
 class GnaniTranscriptionService:
@@ -75,36 +78,37 @@ class GnaniTranscriptionService:
             )
 
         path = validate_audio_file(audio_path)
-        try:
-            with path.open("rb") as audio_handle:
-                response = self.session.post(
-                    self.endpoint,
-                    headers={"X-API-Key-ID": api_key},
-                    data={
-                        "language_code": language_code,
-                        "format": self.output_format,
-                    },
-                    files={
-                        "audio_file": (
-                            path.name,
-                            audio_handle,
-                            _content_type(path),
-                        )
-                    },
-                    timeout=self.timeout,
-                )
-        except requests.Timeout as exc:
-            raise ProviderTimeoutError(
-                f"Gnani transcription timed out after {self.timeout:g} seconds."
-            ) from exc
-        except requests.ConnectionError as exc:
-            raise ProviderConnectionError(
-                "Could not connect to the Gnani transcription service."
-            ) from exc
-        except requests.RequestException as exc:
-            raise ProviderRequestError(
-                "The Gnani transcription request could not be completed."
-            ) from exc
+        with prepare_provider_audio(path) as effective_path:
+            try:
+                with effective_path.open("rb") as audio_handle:
+                    response = self.session.post(
+                        self.endpoint,
+                        headers={"X-API-Key-ID": api_key},
+                        data={
+                            "language_code": language_code,
+                            "format": self.output_format,
+                        },
+                        files={
+                            "audio_file": (
+                                effective_path.name,
+                                audio_handle,
+                                _content_type(effective_path),
+                            )
+                        },
+                        timeout=self.timeout,
+                    )
+            except requests.Timeout as exc:
+                raise ProviderTimeoutError(
+                    f"Gnani transcription timed out after {self.timeout:g} seconds."
+                ) from exc
+            except requests.ConnectionError as exc:
+                raise ProviderConnectionError(
+                    "Could not connect to the Gnani transcription service."
+                ) from exc
+            except requests.RequestException as exc:
+                raise ProviderRequestError(
+                    "The Gnani transcription request could not be completed."
+                ) from exc
 
         try:
             if response.status_code != 200:

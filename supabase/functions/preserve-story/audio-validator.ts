@@ -902,7 +902,12 @@ function parseWebM(buffer: Uint8Array, view: DataView, byteSize: number): AudioV
     offset += contentLen;
   }
 
-  const clusterDurationSec = maxObservedTimestamp >= 0 ? (maxObservedTimestamp * timestampScale) / 1e9 : -1;
+  const clusterDurationSec =
+    maxObservedTimestamp > 0
+      ? (maxObservedTimestamp * timestampScale) / 1e9
+      : maxObservedTimestamp === 0
+      ? 0.02
+      : -1;
 
   // Reconcile declared duration with observed cluster duration
   if (declaredDurationSec > 0 && clusterDurationSec > 0) {

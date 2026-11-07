@@ -83,7 +83,8 @@ export default function Header({
         <div className="header-right">
           <a className="btn nav-cta" href="/preserve-your-story">
             <PreserveStoryIcon className="btn-preserve-icon" />
-            <span>Preserve Your Story</span>
+            <span className="nav-cta-text-full">Preserve Your Story</span>
+            <span className="nav-cta-text-short">Preserve</span>
             <span className="arrow" aria-hidden={true}>
               ↗
             </span>
