@@ -1931,6 +1931,13 @@ pre.p-prov-json {
   grid-template-columns: 1fr 1fr;
 }
 
+@media (max-width: 960px) {
+  .p-review-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 .p-model-panel,
 .p-editor-panel {
   display: flex;
@@ -1975,6 +1982,7 @@ pre.p-prov-json {
 
 .p-model-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -2032,6 +2040,8 @@ pre.p-prov-json {
   justify-content: space-between;
   align-items: center;
   margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .p-editor-tools {

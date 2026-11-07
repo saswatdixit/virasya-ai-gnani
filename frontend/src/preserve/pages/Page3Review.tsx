@@ -203,8 +203,8 @@ export default function Page3Review() {
           <div className="p-card-panel p-editor-panel">
             <div className="p-panel-header" style={{ marginBottom: 12 }}>
               <span className="p-panel-num">2</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
                   <h2 className="p-panel-title">Working Draft Editor</h2>
                   <span className="p-status-pill done">
                     {ed.loadedFrom === "gnani"
