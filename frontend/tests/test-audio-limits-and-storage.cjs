@@ -29,7 +29,7 @@ console.log("=== Virasya Audio Storage, Limits & Playback Test Suite ===\n");
   const constantsPath = path.resolve(__dirname, "../src/preserve/constants.ts");
   const constantsContent = fs.readFileSync(constantsPath, "utf8");
 
-  assert(constantsContent.includes("export const MAX_AUDIO_DURATION_SECONDS = 60"), "Max audio duration must be 60 seconds");
+  assert(constantsContent.includes("export const MAX_AUDIO_DURATION_SECONDS = 30"), "Max audio duration must be 30 seconds");
   assert(constantsContent.includes("export const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024"), "Max audio size must be 5 MiB (5,242,880 bytes)");
   assert(constantsContent.includes("story-recordings-private"), "Default bucket must be story-recordings-private");
 
@@ -37,7 +37,7 @@ console.log("=== Virasya Audio Storage, Limits & Playback Test Suite ===\n");
   for (const ext of expectedExts) {
     assert(constantsContent.includes(`"${ext}"`), `Allowed extensions must include ${ext}`);
   }
-  console.log("   ✓ Shared constants correctly define 60s, 5 MiB, and authorized audio formats.");
+  console.log("   ✓ Shared constants correctly define 30s, 5 MiB, and authorized audio formats.");
 
   // ---------------------------------------------------------------------------
   // 2. Frontend Step 2 (Page2Voice.tsx) Limits & Decoupled Upload
@@ -46,22 +46,22 @@ console.log("=== Virasya Audio Storage, Limits & Playback Test Suite ===\n");
   const voiceContent = fs.readFileSync(path.resolve(__dirname, "../src/preserve/pages/Page2Voice.tsx"), "utf8");
 
   // Duration auto-stop guard
-  assert(voiceContent.includes("elapsedRef.current >= MAX_AUDIO_DURATION_SECONDS"), "Timer must auto-stop recording at 60s");
-  assert(voiceContent.includes("stopRecording()"), "Must stop recording when 60s limit reached");
+  assert(voiceContent.includes("elapsedRef.current >= MAX_AUDIO_DURATION_SECONDS"), "Timer must auto-stop recording at 30s");
+  assert(voiceContent.includes("stopRecording()"), "Must stop recording when 30s limit reached");
 
   // In-stream byte size guard
   assert(voiceContent.includes("recordedBytesRef.current > MAX_AUDIO_SIZE_BYTES"), "MediaRecorder ondataavailable must stop on > 5 MiB");
 
   // File upload guards
   assert(voiceContent.includes("file.size > MAX_AUDIO_SIZE_BYTES"), "File upload must reject files > 5 MiB");
-  assert(voiceContent.includes("dur > MAX_AUDIO_DURATION_SECONDS"), "File upload must reject audio > 60s");
+  assert(voiceContent.includes("dur > MAX_AUDIO_DURATION_SECONDS"), "File upload must reject audio > 30s");
   assert(voiceContent.includes("ALLOWED_AUDIO_EXTENSIONS.includes"), "File upload must enforce format allowlist");
   assert(voiceContent.includes("!dur || isNaN(dur) || dur <= 0"), "Unreadable audio metadata must be safely rejected");
 
   // Decoupled upload
   assert(voiceContent.includes("uploadAudioToPrivateBucket(file"), "Must call uploadAudioToPrivateBucket directly without depending on Flask");
   assert(voiceContent.includes("setAudio("), "Must retain binary File in context memory");
-  console.log("   ✓ Page2Voice.tsx enforces 60s auto-stop, 5 MiB limit, duration metadata check, and decoupled upload.");
+  console.log("   ✓ Page2Voice.tsx enforces 30s auto-stop, 5 MiB limit, duration metadata check, and decoupled upload.");
 
   // ---------------------------------------------------------------------------
   // 3. Preserve Context & Step 6 Guest Recording Upload
@@ -75,7 +75,7 @@ console.log("=== Virasya Audio Storage, Limits & Playback Test Suite ===\n");
 
   // GNANI boundary guard
   assert(ctxContent.includes("currentAudio.size > MAX_AUDIO_SIZE_BYTES"), "executeTranscription must guard against oversized audio");
-  assert(ctxContent.includes("currentAudio.duration > MAX_AUDIO_DURATION_SECONDS"), "executeTranscription must guard against audio > 60s");
+  assert(ctxContent.includes("currentAudio.duration > MAX_AUDIO_DURATION_SECONDS"), "executeTranscription must guard against audio > 30s");
 
   // Pre-preservation upload for guest users
   assert(ctxContent.includes("if (!state.audio.storage_path)"), "Must check if audio lacks storage_path before sealing");

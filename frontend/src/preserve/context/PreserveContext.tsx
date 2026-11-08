@@ -280,26 +280,10 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateForm = useCallback((field: keyof StoryForm, value: string) => {
-    setState((s) => {
-      let nextEd = s.ed;
-      if (field === "story") {
-        const isEdClean = !s.ed.text || s.ed.text === s.ed.baseText;
-        if (isEdClean && (!s.ed.loadedFrom || s.ed.loadedFrom === "written")) {
-          nextEd = {
-            ...s.ed,
-            text: value,
-            baseText: value,
-            loadedFrom: "written",
-          };
-        }
-      }
-
-      return {
-        ...s,
-        form: { ...s.form, [field]: value },
-        ed: nextEd,
-      };
-    });
+    setState((s) => ({
+      ...s,
+      form: { ...s.form, [field]: value },
+    }));
     if (field === "language" && value) {
       const match = LANGUAGE_OPTIONS.find(
         (opt) => opt.name.toLowerCase() === value.toLowerCase()
@@ -384,7 +368,7 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
         return { success: false, vaaniDone: false, conformerDone: false, error: sizeMsg };
       }
       if (currentAudio?.duration && currentAudio.duration > MAX_AUDIO_DURATION_SECONDS) {
-        const durMsg = `Audio duration (${currentAudio.duration.toFixed(1)}s) exceeds the maximum 60-second limit accepted by GNANI AI.`;
+        const durMsg = `Audio duration (${currentAudio.duration.toFixed(1)}s) exceeds the maximum ${MAX_AUDIO_DURATION_SECONDS}-second limit accepted by GNANI AI.`;
         setTranscriptionError(durMsg);
         return { success: false, vaaniDone: false, conformerDone: false, error: durMsg };
       }
@@ -686,10 +670,10 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
   }, [goToStep]);
 
   const retryModel = useCallback(
-    (model: "vaani" | "conformer" | "gnani" = "gnani") => {
-      executeTranscription(model);
+    (_model: "vaani" | "conformer" | "gnani" = "gnani") => {
+      executeTranscription(selectedLanguage);
     },
-    [executeTranscription]
+    [executeTranscription, selectedLanguage]
   );
 
   const setEnhDecision = useCallback(
@@ -1040,7 +1024,7 @@ export function PreserveProvider({ children }: { children: ReactNode }) {
           throw new Error("Audio recording exceeds the maximum allowed limit of 5 MiB (5,242,880 bytes).");
         }
         if (state.audio.duration && state.audio.duration > MAX_AUDIO_DURATION_SECONDS) {
-          throw new Error("Audio recording exceeds the maximum allowed limit of 60 seconds.");
+          throw new Error(`Audio recording exceeds the maximum allowed limit of ${MAX_AUDIO_DURATION_SECONDS} seconds.`);
         }
 
         // If audio has no confirmed cloud storage_path (e.g. recorded while guest), upload now!

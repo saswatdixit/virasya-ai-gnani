@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { usePreserve } from "../context/PreserveContext";
 import { useAuth } from "../../auth";
 import { uploadAudioToPrivateBucket, isSupabaseConfigured } from "../../supabase";
 import { uploadAudioToBackend, isLocalDev } from "../api";
-import { formatTime, convertAudioBlobTo16kPcmWav } from "../utils";
+import { formatTime, convertAudioBlobTo16kPcmWav, encodePcmTo16kWav } from "../utils";
 import AudioPlayer from "../components/AudioPlayer";
 import { LANGUAGE_OPTIONS } from "../types";
 import {
@@ -56,6 +56,11 @@ export default function Page2Voice() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const pcmChunksRef = useRef<Float32Array[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const recStateRef = useRef<"idle" | "requesting" | "recording" | "paused">("idle");
+  recStateRef.current = recState;
 
   const audio = state.audio;
   const hasAudio = !!audio && !replacing;
@@ -66,23 +71,53 @@ export default function Page2Voice() {
     return () => {
       clearInterval(timerRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (processorRef.current) {
+        try { processorRef.current.disconnect(); } catch {}
+      }
+      if (audioCtxRef.current && typeof audioCtxRef.current.close === "function") {
+        audioCtxRef.current.close().catch(() => {});
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
 
-  const startTimer = () => {
+  const stopRecording = useCallback(() => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      clearInterval(timerRef.current);
+      try {
+        mr.stop();
+      } catch (err) {
+        console.warn("[Voice] Error stopping MediaRecorder:", err);
+      }
+    }
+  }, []);
+
+  const startTimer = useCallback(() => {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
+      const mr = mediaRecorderRef.current;
+      if (!mr || mr.state === "inactive") {
+        clearInterval(timerRef.current);
+        return;
+      }
+      // If paused, pause time must NOT be counted toward recording time
+      if (mr.state === "paused") {
+        return;
+      }
+
       elapsedRef.current += 0.25;
-      setElapsed(elapsedRef.current);
+      const currentElapsed = Math.min(elapsedRef.current, MAX_AUDIO_DURATION_SECONDS);
+      setElapsed(currentElapsed);
+
       if (elapsedRef.current >= MAX_AUDIO_DURATION_SECONDS) {
-        // Automatically stop recording when reaching 60 seconds
+        clearInterval(timerRef.current);
         stopRecording();
       }
     }, 250);
-  };
+  }, [stopRecording]);
 
   const drawWaveform = () => {
     if (!analyserRef.current || !canvasRef.current) return;
@@ -130,15 +165,34 @@ export default function Page2Voice() {
       elapsedRef.current = 0;
       setElapsed(0);
 
-      // Web Audio API analyzer
+      // Web Audio API analyzer and direct PCM capture
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        audioCtxRef.current = audioCtx;
         const source = audioCtx.createMediaStreamSource(stream);
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 128;
         source.connect(analyser);
         analyserRef.current = analyser;
         drawWaveform();
+
+        // Direct PCM audio capture for 100% reliable standard WAV encoding
+        pcmChunksRef.current = [];
+        try {
+          const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+          processor.onaudioprocess = (e) => {
+            if (mediaRecorderRef.current?.state === "recording") {
+              const input = e.inputBuffer.getChannelData(0);
+              pcmChunksRef.current.push(new Float32Array(input));
+            }
+          };
+          source.connect(processor);
+          processor.connect(audioCtx.destination);
+          processorRef.current = processor;
+        } catch (procErr) {
+          console.warn("[Voice] ScriptProcessor notice:", procErr);
+        }
       } catch {}
 
       const mimeCandidates = [
@@ -173,8 +227,36 @@ export default function Page2Voice() {
         clearInterval(timerRef.current);
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
+        // Clean up audio processor
+        if (processorRef.current) {
+          try {
+            processorRef.current.disconnect();
+            processorRef.current = null;
+          } catch {}
+        }
+
         const resolvedType = mr.mimeType || supportedMime || "audio/webm";
-        let blob = new Blob(audioChunksRef.current, { type: resolvedType });
+        let blob: Blob;
+        let isWav = false;
+        const sourceSampleRate = audioCtxRef.current?.sampleRate || 44100;
+
+        if (pcmChunksRef.current.length > 0) {
+          try {
+            blob = encodePcmTo16kWav(pcmChunksRef.current, sourceSampleRate, MAX_AUDIO_DURATION_SECONDS);
+            isWav = true;
+          } catch (encodeErr) {
+            console.warn("[Voice] Direct PCM WAV encoding fallback:", encodeErr);
+            blob = new Blob(audioChunksRef.current, { type: resolvedType });
+          }
+        } else {
+          blob = new Blob(audioChunksRef.current, { type: resolvedType });
+        }
+
+        if (audioCtxRef.current && typeof audioCtxRef.current.close === "function") {
+          audioCtxRef.current.close().catch(() => {});
+          audioCtxRef.current = null;
+        }
+
         if (blob.size === 0) {
           setErr("Recording was empty. Please check your microphone and try again.");
           setRecState("idle");
@@ -187,26 +269,29 @@ export default function Page2Voice() {
           return;
         }
 
-        // Normalize WebM browser recordings to standard 16kHz mono 16-bit PCM WAV for ASR compatibility
-        if (resolvedType.includes("webm")) {
+        // If not already WAV and type includes webm, attempt client-side WAV normalization
+        if (!isWav && resolvedType.includes("webm")) {
           try {
             blob = await convertAudioBlobTo16kPcmWav(blob);
+            if (blob.type.includes("wav")) isWav = true;
           } catch (convErr) {
             console.warn("[Voice] Client-side WAV normalization notice:", convErr);
           }
         }
 
-        let ext = "webm";
-        if (blob.type.includes("wav") || resolvedType.includes("wav")) {
-          ext = "wav";
-        } else if (resolvedType.includes("ogg")) {
-          ext = "ogg";
-        } else if (resolvedType.includes("mp4") || resolvedType.includes("m4a") || resolvedType.includes("aac")) {
-          ext = "m4a";
+        let ext = isWav ? "wav" : "webm";
+        if (!isWav) {
+          if (blob.type.includes("wav") || resolvedType.includes("wav")) {
+            ext = "wav";
+          } else if (resolvedType.includes("ogg")) {
+            ext = "ogg";
+          } else if (resolvedType.includes("mp4") || resolvedType.includes("m4a") || resolvedType.includes("aac")) {
+            ext = "m4a";
+          }
         }
 
         const filename = `recording_${Date.now()}.${ext}`;
-        const file = new File([blob], filename, { type: blob.type });
+        const file = new File([blob], filename, { type: isWav ? "audio/wav" : blob.type });
 
         const localUrl = URL.createObjectURL(blob);
         const finalDur = Math.min(elapsedRef.current, MAX_AUDIO_DURATION_SECONDS);
@@ -292,21 +377,16 @@ export default function Page2Voice() {
   };
 
   const pauseResumeRecording = () => {
-    if (!mediaRecorderRef.current) return;
-    if (recState === "recording") {
-      mediaRecorderRef.current.pause();
+    const mr = mediaRecorderRef.current;
+    if (!mr) return;
+    if (mr.state === "recording") {
+      mr.pause();
       clearInterval(timerRef.current);
       setRecState("paused");
-    } else if (recState === "paused") {
-      mediaRecorderRef.current.resume();
+    } else if (mr.state === "paused") {
+      mr.resume();
       startTimer();
       setRecState("recording");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && (recState === "recording" || recState === "paused")) {
-      mediaRecorderRef.current.stop();
     }
   };
 
@@ -353,7 +433,7 @@ export default function Page2Voice() {
       if (dur > MAX_AUDIO_DURATION_SECONDS) {
         URL.revokeObjectURL(objectUrl);
         setUploading(false);
-        setErr(`Audio duration (${dur.toFixed(1)}s) exceeds the maximum limit of 60 seconds accepted for preservation and transcription.`);
+        setErr(`Audio duration (${dur.toFixed(1)}s) exceeds the maximum limit of ${MAX_AUDIO_DURATION_SECONDS} seconds accepted for preservation and transcription.`);
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
@@ -866,13 +946,12 @@ export default function Page2Voice() {
               </div>
             ) : (
               <div>
-                {/* Panel Header for Section C preserved when Record / Audio capture interface opens */}
                 <div className="p-panel-header">
-                  <span className="p-panel-num">C</span>
+                  <span className="p-panel-num">A</span>
                   <div>
-                    <h2 className="p-panel-title">Written Memory & Notes</h2>
+                    <h2 className="p-panel-title">Audio Capture & Upload</h2>
                     <p className="p-panel-sub">
-                      Capture your thoughts in your own words. You can also record spoken audio on the next step.
+                      Record spoken audio directly with your microphone or upload an existing recording
                     </p>
                   </div>
                 </div>
@@ -919,12 +998,12 @@ export default function Page2Voice() {
                         <span className="p-rec-inner" />
                       </button>
 
-                      <div className="p-rec-timer">{formatTime(elapsed)} / 01:00</div>
+                      <div className="p-rec-timer">{formatTime(elapsed)} / 00:30</div>
 
                       <p className="p-rec-status">
-                        {recState === "idle" && "Click the record button to speak (up to 60 seconds)."}
+                        {recState === "idle" && "Click the record button to speak (up to 30 seconds)."}
                         {recState === "requesting" && "Requesting microphone permission…"}
-                        {recState === "recording" && "Recording in progress (max 60s). Speak naturally in your native language."}
+                        {recState === "recording" && "Recording in progress (max 30s). Speak naturally in your native language."}
                         {recState === "paused" && "Recording paused."}
                         {uploading && "Uploading audio recording…"}
                       </p>
@@ -977,7 +1056,7 @@ export default function Page2Voice() {
                     <h3 className="p-drop-title">
                       {uploading ? "Uploading audio recording…" : "Drag & drop your audio recording"}
                     </h3>
-                    <p className="p-drop-sub">Supports MP3, WAV, OGG, M4A, FLAC, or WebM (Max 60s &middot; 5 MiB)</p>
+                    <p className="p-drop-sub">Supports MP3, WAV, OGG, M4A, FLAC, or WebM (30 sec max &middot; 5 MiB)</p>
 
                     <button
                       type="button"
@@ -1128,7 +1207,7 @@ export default function Page2Voice() {
               </button>
             ) : (
               <span className="p-small p-hint">
-                Please add audio or provide written text on Step 1 to proceed
+                Please record audio or upload an audio file to proceed
               </span>
             )}
           </div>

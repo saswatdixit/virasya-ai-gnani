@@ -8,6 +8,7 @@ export default function Page6FinalReview() {
   const {
     state,
     goToStep,
+    updateForm,
     setVisibility,
     setFinalConfirmed,
     setAudioPublicConsent,
@@ -222,7 +223,7 @@ export default function Page6FinalReview() {
                     <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", padding: "2px 6px", borderRadius: 3 }}>
                       Text Output 1
                     </span>
-                    <h3 className="p-side-title" style={{ margin: 0 }}>Written Story Context</h3>
+                    <h3 className="p-side-title" style={{ margin: 0 }}>Additional Notes & Context</h3>
                   </div>
                   <p className="p-preserved-text" style={{ margin: 0, fontSize: 15, lineHeight: 1.8 }}>{opt}</p>
                 </div>
@@ -344,10 +345,10 @@ export default function Page6FinalReview() {
                         <span style={{ background: "rgba(184, 93, 50, 0.12)", color: "var(--v-terracotta)", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase" }}>
                           Text Output 1
                         </span>
-                        <strong style={{ fontSize: 14, color: "var(--v-ink)" }}>Written Story Context</strong>
+                        <strong style={{ fontSize: 14, color: "var(--v-ink)" }}>Additional Notes & Context</strong>
                       </div>
                       <span className="p-small" style={{ color: "var(--v-text-sub)" }}>
-                        {wordCount(opt)} words · User notes
+                        {wordCount(opt)} words · Optional note
                       </span>
                     </div>
                     <div className="p-review-text" style={{ fontSize: "15px", lineHeight: "1.8", color: "var(--v-ink)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
@@ -560,6 +561,38 @@ export default function Page6FinalReview() {
                       </p>
                     </div>
                   </label>
+                </div>
+              </div>
+
+              {/* Additional Notes & Context (Optional) */}
+              <div className="p-field-group" style={{ marginTop: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <label htmlFor="f-additional-notes" className="p-field-label" style={{ margin: 0 }}>
+                    Additional Notes & Context
+                  </label>
+                  <span className="p-small" style={{ color: "var(--v-muted)", fontStyle: "italic" }}>
+                    Optional
+                  </span>
+                </div>
+                <p className="p-small" style={{ margin: "0 0 10px 0", color: "var(--v-text-sub)", lineHeight: 1.5 }}>
+                  Want to share anything else about this memory? Add an optional written note to provide additional context.
+                </p>
+                <textarea
+                  id="f-additional-notes"
+                  className="p-area-compact"
+                  value={form.story}
+                  onChange={(e) => updateForm("story", e.target.value)}
+                  placeholder="Add an optional written note to provide additional context, background, or personal reflections... (leave empty if none)"
+                  rows={4}
+                  style={{ width: "100%", resize: "vertical" }}
+                />
+                <div className="p-counter-row" style={{ marginTop: 6, display: "flex", justifyContent: "space-between" }}>
+                  <span className="p-small" style={{ color: "var(--v-text-sub)" }}>
+                    <strong>{wordCount(form.story)}</strong> words · {form.story.length} chars
+                  </span>
+                  <span className="p-small p-hint">
+                    Optional comment · Preserved alongside the spoken narrative
+                  </span>
                 </div>
               </div>
 

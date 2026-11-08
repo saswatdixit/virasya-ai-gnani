@@ -195,6 +195,83 @@ export async function convertAudioBlobTo16kPcmWav(sourceBlob: Blob): Promise<Blo
   return new Blob([wavBuffer], { type: "audio/wav" });
 }
 
+/**
+ * Encodes recorded raw Float32Array PCM chunks directly to a standard 16kHz mono 16-bit PCM WAV Blob.
+ *
+ * This bypasses browser-specific MediaRecorder container issues (such as Chrome WebM missing duration
+ * or Safari container quirks) and ensures speech recognition backends receive pristine PCM audio.
+ */
+export function encodePcmTo16kWav(
+  pcmChunks: Float32Array[],
+  sourceSampleRate: number,
+  maxDurationSeconds: number = 30
+): Blob {
+  let totalLength = 0;
+  for (const chunk of pcmChunks) totalLength += chunk.length;
+  if (totalLength === 0) return new Blob([], { type: "audio/wav" });
+
+  const merged = new Float32Array(totalLength);
+  let offset = 0;
+  for (const chunk of pcmChunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  const targetRate = 16000;
+  let finalPcm: Float32Array;
+  if (sourceSampleRate === targetRate) {
+    finalPcm = merged;
+  } else {
+    const ratio = sourceSampleRate / targetRate;
+    const newLength = Math.max(1, Math.round(totalLength / ratio));
+    finalPcm = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i++) {
+      const srcIdx = i * ratio;
+      const idx = Math.floor(srcIdx);
+      const frac = srcIdx - idx;
+      const s0 = merged[idx] || 0;
+      const s1 = idx + 1 < totalLength ? merged[idx + 1] : s0;
+      finalPcm[i] = s0 + frac * (s1 - s0);
+    }
+  }
+
+  // Cap PCM samples to exactly maxDurationSeconds (default 30s * 16000 = 480,000 samples)
+  // to strictly prevent recorded audio from exceeding the allowed boundary.
+  const maxAllowedSamples = Math.round(maxDurationSeconds * targetRate);
+  if (finalPcm.length > maxAllowedSamples) {
+    finalPcm = finalPcm.subarray(0, maxAllowedSamples);
+  }
+
+  const wavBuffer = new ArrayBuffer(44 + finalPcm.length * 2);
+  const view = new DataView(wavBuffer);
+
+  function writeString(off: number, str: string) {
+    for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + finalPcm.length * 2, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+  view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+  view.setUint16(22, 1, true); // NumChannels (1 mono)
+  view.setUint32(24, targetRate, true); // SampleRate
+  view.setUint32(28, targetRate * 2, true); // ByteRate (16000 * 1 * 2)
+  view.setUint16(32, 2, true); // BlockAlign (1 * 2)
+  view.setUint16(34, 16, true); // BitsPerSample (16)
+  writeString(36, "data");
+  view.setUint32(40, finalPcm.length * 2, true);
+
+  let byteOffset = 44;
+  for (let i = 0; i < finalPcm.length; i++, byteOffset += 2) {
+    const s = Math.max(-1, Math.min(1, finalPcm[i]));
+    view.setInt16(byteOffset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return new Blob([wavBuffer], { type: "audio/wav" });
+}
+
 export const getClock = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 

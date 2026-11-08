@@ -80,18 +80,6 @@ export default function Hero() {
             <br />
             YOUR LEGACY.
           </span>
-          <div className="float-note note-one">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.3"
-              aria-hidden={true}
-            >
-              <path d="M3 5h18v14H3zM3 5l9 8 9-8M3 19l6-6m12 6-6-6" />
-            </svg>
-            Treasured and enriched.
-          </div>
           <div className="float-note note-two">
             <span className="check-dot">✓</span>Your stories, remembered.
           </div>

@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { usePreserve } from "../context/PreserveContext";
 import { useAuth } from "../../auth";
-import { wordCount } from "../utils";
 import {
   STORY_CATEGORIES,
   STORY_LANGUAGES,
@@ -9,7 +8,7 @@ import {
 } from "../types";
 
 export default function Page1Story() {
-  const { state, updateForm, goToStep, fillSampleStory } = usePreserve();
+  const { state, updateForm, goToStep } = usePreserve();
   const { user, profile } = useAuth();
   const f = state.form;
 
@@ -66,16 +65,6 @@ export default function Page1Story() {
             </div>
             <div className="p-header-meta">
               <span className="p-status-pill done">AUTO-SAVING LOCALLY</span>
-              {!f.title && (
-                <button
-                  type="button"
-                  className="p-btn p-btn-ghost p-btn-sm"
-                  onClick={fillSampleStory}
-                  title="Fill sample Odia heritage story"
-                >
-                  Load sample story
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -253,38 +242,6 @@ export default function Page1Story() {
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Full-width written memory section */}
-          <div className="p-card-panel p-written-panel">
-            <div className="p-panel-header">
-              <span className="p-panel-num">C</span>
-              <div>
-                <h2 className="p-panel-title">Written Memory & Notes</h2>
-                <p className="p-panel-sub">
-                  Capture your thoughts in your own words. You can also record spoken audio on the next step.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-field-compact">
-              <textarea
-                id="f-story"
-                className="p-area-compact"
-                value={f.story}
-                onChange={(e) => updateForm("story", e.target.value)}
-                placeholder="Write what you remember about this tradition, recipe, phrase, or family memory. Speak or write naturally—authenticity matters more than perfection."
-                rows={4}
-              />
-              <div className="p-counter-row">
-                <span className="p-small">
-                  <strong>{wordCount(f.story)}</strong> words · {f.story.length} chars
-                </span>
-                <span className="p-small p-hint">
-                  Your written words remain preserved separately from spoken transcripts.
-                </span>
               </div>
             </div>
           </div>

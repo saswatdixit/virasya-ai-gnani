@@ -43,43 +43,42 @@ const storiesSrc = fs.readFileSync(path.join(__dirname, '../src/supabase/stories
 const cssSrc = fs.readFileSync(path.join(__dirname, '../src/preserve/preserve.css'), 'utf8');
 
 // ============================================================================
-// 1. Part E: Step C UI Text Preservation
+// 1. Part E: Additional Notes & Context UX Restructuring Tests
 // ============================================================================
-console.log('--- 1. Step C UI Text Preservation Tests ---');
+console.log('--- 1. Additional Notes & Context UX Restructuring Tests ---');
 
-const EXPECTED_TITLE = 'Written Memory & Notes';
-const EXPECTED_DESC = 'Capture your thoughts in your own words. You can also record spoken audio on the next step.';
+const OLD_TITLE = 'Written Memory & Notes';
+const OLD_DESC = 'Capture your thoughts in your own words. You can also record spoken audio on the next step.';
+const NEW_TITLE = 'Additional Notes & Context';
+const NEW_DESC = 'Want to share anything else about this memory? Add an optional written note to provide additional context.';
 
-// Check 1: Normal text-entry flow on Step 1 contains heading and description
+// Check 1: Section C is removed from Step 1 (Page1Story)
 check(
-  'Step 1 (Page1Story) renders Section C heading and description in normal text-entry flow',
-  page1Src.includes(EXPECTED_TITLE) && page1Src.includes(EXPECTED_DESC),
-  'Page1Story must render Section C heading and description'
+  'Step 1 (Page1Story) removes initial Written Memory & Notes section',
+  !page1Src.includes(OLD_TITLE) && !page1Src.includes(OLD_DESC),
+  'Page1Story must not render old initial Written Memory & Notes section'
 );
 
-// Check 2: When Record feature is selected on Step 2 (Page2Voice), heading and description remain visible
+// Check 2: Step 2 (Page2Voice) renders Audio Capture & Upload header
 check(
-  'Step 2 (Page2Voice) retains Section C heading and description above audio capture / recording controls',
-  page2Src.includes(EXPECTED_TITLE) && page2Src.includes(EXPECTED_DESC),
-  'Page2Voice must render Section C heading and description when recording interface opens'
+  'Step 2 (Page2Voice) renders Audio Capture & Upload panel header with badge "A"',
+  page2Src.includes('<span className="p-panel-num">A</span>') &&
+    page2Src.includes('<h2 className="p-panel-title">Audio Capture & Upload</h2>'),
+  'Page2Voice must render Audio Capture & Upload panel header badge'
 );
 
-// Check 3: Panel badge and class structure match existing design
+// Check 3: Step 6 (Page6FinalReview) renders Additional Notes & Context heading and description
 check(
-  'Page2Voice renders Section C panel header with matching panel badge "C"',
-  page2Src.includes('<span className="p-panel-num">C</span>') &&
-    page2Src.includes('<h2 className="p-panel-title">Written Memory & Notes</h2>'),
-  'Page2Voice must render Section C panel header badge'
+  'Step 6 (Page6FinalReview) renders Additional Notes & Context heading and description before submission',
+  page6Src.includes(NEW_TITLE) && page6Src.includes(NEW_DESC),
+  'Page6FinalReview must render Additional Notes & Context section'
 );
 
-// Check 4: Exact wording is preserved without rewriting
+// Check 4: Step 6 provides optional text area for comments without mandatory validation
 check(
-  'Step C title and lede text preserve exact wording in both Step 1 and Step 2',
-  page1Src.includes(`>${EXPECTED_TITLE}</h2>`) &&
-    page2Src.includes(`>${EXPECTED_TITLE}</h2>`) &&
-    page1Src.includes(EXPECTED_DESC) &&
-    page2Src.includes(EXPECTED_DESC),
-  'Exact wording must be reused across both pages'
+  'Step 6 (Page6FinalReview) provides an optional text area for comments',
+  page6Src.includes('id="f-additional-notes"') && page6Src.includes('Optional'),
+  'Page6FinalReview must render optional comment textarea'
 );
 
 // ============================================================================

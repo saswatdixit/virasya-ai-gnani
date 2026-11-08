@@ -449,8 +449,7 @@ header#header nav a:after {
   height: 18px;
 }
 .note-one {
-  top: 25%;
-  left: 58%;
+  display: none !important;
 }
 .note-two {
   top: 64%;
@@ -866,9 +865,6 @@ body.modal-open {
   .float-note {
     font-size: 12px;
   }
-  .note-one {
-    left: 58%;
-  }
 }
 @media (max-width: 1100px) {
   .hero {
@@ -898,12 +894,6 @@ body.modal-open {
   }
   .hero .eyebrow {
     font-size: 8px;
-  }
-  .note-one {
-    top: 24%;
-    left: 62%;
-    font-size: 9px;
-    padding: 12px;
   }
   .note-two {
     top: 70%;
@@ -1046,11 +1036,6 @@ body.modal-open {
     font-size: 8px;
     padding: 10px 11px;
     gap: 7px;
-  }
-  .note-one {
-    top: auto;
-    bottom: 360px;
-    left: 7%;
   }
   .note-two {
     top: auto;
@@ -1268,9 +1253,6 @@ body.modal-open {
   .hero-art {
     margin-top: 14px;
   }
-  .note-one {
-    bottom: 333px;
-  }
   .note-two {
     bottom: 151px;
   }
@@ -1357,10 +1339,6 @@ body.modal-open {
     font-size: 13px;
     padding: 16px 20px;
   }
-  .note-one {
-    left: 52%;
-    top: 19%;
-  }
   .note-two {
     right: 4.5%;
     top: 61%;
@@ -1415,10 +1393,6 @@ body.modal-open {
   .float-note {
     font-size: 10px;
     padding: 13px;
-  }
-  .note-one {
-    left: 59%;
-    top: 23%;
   }
   .hero-art {
     top: 130px;
@@ -1498,9 +1472,6 @@ body.modal-open {
   .tab {
     min-height: 44px;
   }
-  .hero .note-one {
-    bottom: 370px;
-  }
   .hero .note-two {
     bottom: 167px;
   }
@@ -1512,10 +1483,6 @@ body.modal-open {
   .hero p {
     font-size: 13px;
     max-width: 335px;
-  }
-  .hero .note-one {
-    top: 56%;
-    bottom: auto;
   }
   .hero .note-two {
     top: 81%;
@@ -1540,9 +1507,6 @@ body.modal-open {
   }
   .hero p {
     font-size: 12px;
-  }
-  .hero .note-one {
-    top: 56%;
   }
   .hero .note-two {
     top: 80%;
@@ -1737,10 +1701,6 @@ html.motion-reduced {
 }
 .hero .float-note {
   animation: none;
-}
-.hero .note-one {
-  top: 19%;
-  left: 52%;
 }
 .hero .note-two {
   top: 62%;
@@ -1981,9 +1941,6 @@ header#header.hero-nav .mark {
   .hero .eyebrow {
     font-size: 10px;
   }
-  .hero .note-one {
-    top: 17%;
-  }
   .hero .note-two {
     top: 62%;
   }
@@ -2097,11 +2054,6 @@ header#header.hero-nav .mark {
     font-size: 8px;
     padding: 10px;
     gap: 6px;
-  }
-  .hero .note-one {
-    top: 49%;
-    bottom: auto;
-    left: 5%;
   }
   .hero .note-two {
     top: 73%;
@@ -2221,9 +2173,6 @@ header#header.hero-nav .mark {
     top: 41%;
     bottom: 11%;
   }
-  .hero .note-one {
-    top: 49%;
-  }
   .hero .note-two {
     top: 74%;
   }
@@ -2326,10 +2275,6 @@ html.motion-reduced .hero {
   .hero-foot {
     bottom: 50px;
   }
-  .hero .note-one {
-    top: 17.5%;
-    padding: 13px 18px;
-  }
   .hero .note-two {
     top: 57.5%;
     padding: 13px 18px;
@@ -2369,9 +2314,6 @@ main {
   .hero-orbits {
     top: 46%;
   }
-  .hero .note-one {
-    top: 51%;
-  }
   .hero .note-two {
     top: 76%;
   }
@@ -2386,10 +2328,6 @@ main {
   }
   .hero-foot a {
     font-size: 11px;
-  }
-  .hero .note-one {
-    left: 52%;
-    top: 17.5%;
   }
   .hero .note-two {
     right: 4.5%;
@@ -2424,10 +2362,6 @@ main {
     width: 64vw;
     left: 18%;
     top: 43%;
-  }
-  .hero .note-one {
-    top: 50%;
-    left: 8%;
   }
   .hero .note-two {
     top: 75%;

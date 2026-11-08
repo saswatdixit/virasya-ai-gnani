@@ -2,12 +2,12 @@
  * Virasya Audio Limits & Supported Formats Constants
  *
  * Requirements:
- * - Maximum audio duration: 60 seconds (strictly matching GNANI API limits)
+ * - Maximum audio duration: 30 seconds (strictly matching GNANI API limits)
  * - Maximum audio file size: 5 MiB (5 * 1024 * 1024 bytes = 5,242,880 bytes)
  * - Supported audio formats allowlist: WAV, OGG, MP3, M4A, FLAC, AAC, WebM
  */
 
-export const MAX_AUDIO_DURATION_SECONDS = 60;
+export const MAX_AUDIO_DURATION_SECONDS = 30;
 export const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024; // 5 MiB (5,242,880 bytes)
 export const MAX_AUDIO_SIZE_MIB = 5;
 
